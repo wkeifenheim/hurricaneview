@@ -79,6 +79,9 @@ handles.HurricaneIndex(1442,2) = 41198;
 
 handles.HurIndexHist = 0;
 
+% Handle for keeping track of plotting hurricanes stepwise
+handles.stepPlace = 0;
+
 %Load up the map
 load coast
 axesm mollweid
@@ -141,23 +144,47 @@ end
 
 % --- Executes on button press in clearMap.
 function clearMap_Callback(hObject, eventdata, handles)
-% hObject    handle to clearMap (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 % Establish which was the last hurricane to be plotted
 n = size(handles.HurIndexHist,2);
-mostRecentPlot = handles.HurIndexHist(n);
+handles.HurIndexHist
+n
 
-% Use index to find range of handles to delete
-try
-    j = handles.HurricaneIndex(mostRecentPlot,1);
-    k = handles.HurricaneIndex(mostRecentPlot,2);
-    for i=j:k
-        delete(handles.points(i));
+if(handles.stepPlace ~= 0) % "step back"
+    disp('in clearMap: attempting backstep..')
+    handles.stepPlace
+    
+    try
+        delete(handles.points(handles.stepPlace));
+    catch err
+        disp('Error: somethin` ain`t right with stepping back..')
     end
-catch err
-    disp('caught it, we`re good')
+    
+    handles.stepPlace = handles.stepPlace - 1;
+    
+    % Reset stepPlace if decremented past first index
+    disp('first index of current hurricane:')
+    handles.HurricaneIndex(handles.HurIndexHist(n));
+    if(handles.stepPlace < handles.HurricaneIndex(handles.HurIndexHist(n),1))
+        handles.stepPlace = 0;
+        % And pop this hurricane off the history stack
+        if(n == 1)
+            handles.HurIndexHist = 0;
+        else
+        handles.HurIndexHist = handles.HurIndexHist(1:n-1);
+        end
+    end
+else
+    % Use index to find range of handles to delete
+    try
+        j = handles.HurricaneIndex(handles.HurIndexHist(n),1);
+        k = handles.HurricaneIndex(handles.HurIndexHist(n),2);
+        for i=j:k
+            delete(handles.points(i));
+        end
+    catch err
+        disp('caught it, we`re good')
+    end
 end
     
 % "Pop" the most recent value from the history
@@ -173,9 +200,44 @@ end
 
 % --- Executes on button press in stepPath.
 function stepPath_Callback(hObject, eventdata, handles)
-% hObject    handle to stepPath (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
+% If the step tracker is outside the range of indices for the current
+% hurricane, set the tracker to the first index for the hurricane
+if(handles.stepPlace < handles.HurricaneIndex(handles.choice,1)...
+        || handles.stepPlace > handles.HurricaneIndex(handles.choice,2))
+    
+    handles.stepPlace = handles.HurricaneIndex(handles.choice,1);
+    
+    %This is the first instance of plotting this
+    %hurricane, so append it to the plot history
+    if(handles.HurIndexHist == 0) %initial case
+        handles.HurIndexHist = handles.choice;
+    else
+        handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
+    end
+end
+
+%Determine appropriate hurricane category color
+windspeed = handles.hurDat(handles.stepPlace,10);
+if(windspeed <= 95)
+    linespec = 'g*'; %category 1
+elseif(windspeed <= 110)
+    linespec = 'y*'; %category 2
+elseif(windspeed <= 129)
+    linespec = 'c*'; %category 3
+elseif(windspeed <= 156)
+    linespec = 'r*'; %category 4
+else
+    linespec = 'k*'; %category 5
+end
+
+% Plot the step, and increment the step tracker
+
+handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
+    handles.hurDat(handles.stepPlace,7),linespec);
+handles.stepPlace = handles.stepPlace + 1;
+
+guidata(hObject,handles);
 
 end
 
