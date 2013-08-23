@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 22-Aug-2013 11:27:44
+% Last Modified by GUIDE v2.5 23-Aug-2013 13:54:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -87,6 +87,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     worldmap([0 70],[-120,0])
     load coast
     plotm(lat,long)
+    whitebg('k')
     %axesm mollweid
     %framem('FEdgeColor','blue','FLineWidth',0.5)
     %plotm(lat,long,'LineWidth',1,'Color','blue')
@@ -122,13 +123,14 @@ function hurChoice_Callback(hObject, eventdata, handles)
     % Hints: get(hObject,'String') returns contents of hurChoice as text
     %        str2double(get(hObject,'String')) returns contents of hurChoice as a double
 
-    user_entry = str2double(get(hObject,'string'));
-    if isnan(user_entry)
+    user_entry = str2num(get(hObject,'string'));
+    if isnan(user_entry) %not effective after str2double -> str2num change..
         errordlg('You must enter a numeric value','Bad Input','modal')
         uicontrol(hObject)
             return
     end
     handles.choice = user_entry;
+    %disp(handles.choice)
     guidata(hObject,handles);
 end
 
@@ -145,13 +147,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-% --- Executes on button press in clearMap.
-function clearMap_Callback(hObject, eventdata, handles)
+% --- Executes on button press in clear.
+function undo_Callback(hObject, eventdata, handles)
 
     % Establish which was the last hurricane to be plotted
     n = size(handles.HurIndexHist,2);
         % debugging stuff
-        %display('Beginning clearMap function...')
+        %display('Beginning clear function...')
         %disp(strcat('Current HurIndexHist: ',num2str(handles.HurIndexHist)))
         %disp(strcat('N: ',num2str(n)))
 
@@ -303,4 +305,16 @@ function plotPath_Callback(hObject, eventdata, handles)
     end
     
     guidata(hObject,handles)
+end
+
+% --- Executes on button press in clear.
+function clear_Callback(hObject, eventdata, handles)
+    % hObject    handle to clear (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    try
+        delete(handles.points)
+    catch
+        disp('clear ain`t happy')
+    end
 end
