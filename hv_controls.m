@@ -234,10 +234,12 @@ else
 end
 
 % Plot the step, and increment the step tracker
-
+disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
 handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
     handles.hurDat(handles.stepPlace,7),linespec);
-handles.stepPlace = handles.stepPlace + 1;
+if(handles.stepPlace ~= handles.HurricaneIndex(handles.choice,2))
+    handles.stepPlace = handles.stepPlace + 1;
+end
 
 guidata(hObject,handles);
 
