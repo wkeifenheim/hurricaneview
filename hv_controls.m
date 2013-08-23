@@ -145,58 +145,60 @@ end
 % --- Executes on button press in clearMap.
 function clearMap_Callback(hObject, eventdata, handles)
 
-% Establish which was the last hurricane to be plotted
-n = size(handles.HurIndexHist,2);
-    % debugging stuff
-    display('Beginning clearMap function...')
-    disp(strcat('Current HurIndexHist: ',num2str(handles.HurIndexHist)))
-    disp(strcat('N: ',num2str(n)))
+    % Establish which was the last hurricane to be plotted
+    n = size(handles.HurIndexHist,2);
+        % debugging stuff
+        display('Beginning clearMap function...')
+        disp(strcat('Current HurIndexHist: ',num2str(handles.HurIndexHist)))
+        disp(strcat('N: ',num2str(n)))
 
-if(handles.stepPlace ~= 0) % "step back"
-    disp(strcat('attempting backstep from stepPlace: ',num2str(handles.stepPlace)))
-    
-    try
-        delete(handles.points(handles.stepPlace));
-    catch err
-        disp('Error: somethin` ain`t right with stepping back..')
-    end
-    
-    handles.stepPlace = handles.stepPlace - 1;
-    
-    % Reset stepPlace if decremented past first index
-        disp(strcat('first index of current hurricane: ',...
-            num2str(handles.HurricaneIndex(handles.HurIndexHist(n),1))));
-        
-    if(handles.stepPlace < handles.HurricaneIndex(handles.HurIndexHist(n),1))
-        handles.stepPlace = 0;
-        % And pop this hurricane off the history stack
-        if(n == 1)
+    if(handles.stepPlace ~= 0) % "step back"
+        disp(strcat('attempting backstep from stepPlace: ',num2str(handles.stepPlace)))
+
+        try
+            delete(handles.points(handles.stepPlace));
+        catch err
+            disp('Error: somethin` ain`t right with stepping back..')
+        end
+
+        handles.stepPlace = handles.stepPlace - 1;
+
+        % Reset stepPlace if decremented past first index
+            disp(strcat('first index of current hurricane: ',...
+                num2str(handles.HurricaneIndex(handles.HurIndexHist(n),1))));
+            disp(strcat('stepPlace:',num2str(handles.stepPlace),' < ',num2str(handles.HurricaneIndex(handles.HurIndexHist(n),1))))
+        if(handles.stepPlace < handles.HurricaneIndex(handles.HurIndexHist(n),1))
+            handles.stepPlace = 0;
+            % And pop this hurricane off the history stack
+            if(n == 1)
+                handles.HurIndexHist = 0;
+            else
+                handles.HurIndexHist = handles.HurIndexHist(1:n-1);
+            end
+        end
+    else
+        % Use index to find range of handles to delete
+        try
+            j = handles.HurricaneIndex(handles.HurIndexHist(n),1);
+            k = handles.HurricaneIndex(handles.HurIndexHist(n),2);
+            for i=j:k
+                delete(handles.points(i));
+            end
+        catch err
+            disp('caught it, we`re good')
+        end
+
+        % "Pop" the most recent value from the history
+        if(n == 1) % Last remaining plotted hurricane
             handles.HurIndexHist = 0;
         else
-        handles.HurIndexHist = handles.HurIndexHist(1:n-1);
+            handles.HurIndexHist = handles.HurIndexHist(1:n-1);
         end
     end
-else
-    % Use index to find range of handles to delete
-    try
-        j = handles.HurricaneIndex(handles.HurIndexHist(n),1);
-        k = handles.HurricaneIndex(handles.HurIndexHist(n),2);
-        for i=j:k
-            delete(handles.points(i));
-        end
-    catch err
-        disp('caught it, we`re good')
-    end
-end
-    
-% "Pop" the most recent value from the history
-if(n == 1) % Last remaining plotted hurricane
-    handles.HurIndexHist = 0;
-else
-    handles.HurIndexHist = handles.HurIndexHist(1:n-1);
-end
 
-guidata(hObject,handles);
+
+
+    guidata(hObject,handles);
 
 end
 
@@ -234,7 +236,7 @@ else
 end
 
 % Plot the step, and increment the step tracker
-disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+%disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
 handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
     handles.hurDat(handles.stepPlace,7),linespec);
 if(handles.stepPlace ~= handles.HurricaneIndex(handles.choice,2))
