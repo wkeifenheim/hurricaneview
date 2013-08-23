@@ -52,15 +52,15 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to hv_controls (see VARARGIN)
 
-%Contents from HurricaneView_init.m
+
 s = load('HurDat_1851_2010.mat');
 handles.hurDat = s.hurDat;
-handles.points = zeros(1,41198);   % using handles attaches
-                                   % negligable performance hit
+handles.points = zeros(1,41198);   % store handles to plotted points
                                   
 
-%Create a 1442x2 matrix containing the indeces of a specific hurricane
-%in the hurDat matrix
+% Create a 1442x2 matrix containing the indeces of a specific hurricane
+% in the hurDat matrix -> HurricaneIndex(somehurricane#) =
+% [startindex,endindex]
 
 handles.HurricaneIndex = zeros([1442,2]);
 
@@ -82,7 +82,7 @@ handles.HurIndexHist = 0;
 % Handle for keeping track of plotting hurricanes stepwise
 handles.stepPlace = 0;
 
-%Load up the map
+% Load up the map
 load coast
 axesm mollweid
 framem('FEdgeColor','blue','FLineWidth',0.5)
@@ -147,12 +147,13 @@ function clearMap_Callback(hObject, eventdata, handles)
 
 % Establish which was the last hurricane to be plotted
 n = size(handles.HurIndexHist,2);
-handles.HurIndexHist
-n
+    % debugging stuff
+    display('Beginning clearMap function...')
+    disp(strcat('Current HurIndexHist: ',num2str(handles.HurIndexHist)))
+    disp(strcat('N: ',num2str(n)))
 
 if(handles.stepPlace ~= 0) % "step back"
-    disp('in clearMap: attempting backstep..')
-    handles.stepPlace
+    disp(strcat('attempting backstep from stepPlace: ',num2str(handles.stepPlace)))
     
     try
         delete(handles.points(handles.stepPlace));
@@ -163,8 +164,9 @@ if(handles.stepPlace ~= 0) % "step back"
     handles.stepPlace = handles.stepPlace - 1;
     
     % Reset stepPlace if decremented past first index
-    disp('first index of current hurricane:')
-    handles.HurricaneIndex(handles.HurIndexHist(n));
+        disp(strcat('first index of current hurricane: ',...
+            num2str(handles.HurricaneIndex(handles.HurIndexHist(n),1))));
+        
     if(handles.stepPlace < handles.HurricaneIndex(handles.HurIndexHist(n),1))
         handles.stepPlace = 0;
         % And pop this hurricane off the history stack
