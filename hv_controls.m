@@ -313,7 +313,9 @@ function clear_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
     try
-        delete(handles.points)
+        for i=1:41198
+            delete(handles.points(i))
+        end
     catch
         disp('clear ain`t happy')
     end

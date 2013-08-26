@@ -1,3 +1,0 @@
-GUI Needs:
-	*Type-in box 1: allowing 1-1442, cooresponding to specific hurricane
-	Type-in box 2: two boxes, designate range of dates (year or month)
