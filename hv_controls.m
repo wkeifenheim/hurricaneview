@@ -163,16 +163,18 @@ function undo_Callback(hObject, eventdata, handles)
     if(handles.stepPlace ~= 0) % "step back"
         %disp(strcat('attempting backstep from stepPlace: ',num2str(handles.stepPlace)))
         
-        handles.stepPlace = handles.stepPlace - 1;
+        
         
         try
-            delete(handles.points(handles.stepPlace));
-            handles.pointsPlotted(handles.stepPlace) = 0;
+            if(handles.pointsPlotted(handles.stepPlace) == 1)
+                delete(handles.points(handles.stepPlace));
+                handles.pointsPlotted(handles.stepPlace) = 0;
+            end
         catch err
             disp('Error: somethin` ain`t right with stepping back..')
         end
 
-        
+        handles.stepPlace = handles.stepPlace - 1;
 
         % Reset stepPlace if decremented past first index
             %disp(strcat('first index of current hurricane: ',...
@@ -219,7 +221,7 @@ end
 
 % --- Executes on button press in stepPath.
 function stepPath_Callback(hObject, eventdata, handles)
-
+    
     % If the step tracker is outside the range of indices for the current
     % hurricane, set the tracker to the first index for the hurricane
     if(handles.stepPlace < handles.HurricaneIndex(handles.choice,1)...
@@ -229,7 +231,7 @@ function stepPath_Callback(hObject, eventdata, handles)
         handles.plotStop = 0;
 
         %If first instance of plotting this
-        %hurricane, append it to the plot history
+        %hurricane, assign; otherwise, append
         if(handles.HurIndexHist == 0) %initial case
             handles.HurIndexHist = handles.choice;
         else
@@ -252,13 +254,13 @@ function stepPath_Callback(hObject, eventdata, handles)
     end
 
     % Plot the step, and increment the step tracker
-    %disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
     if(handles.plotStop == 0)
         handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
             handles.hurDat(handles.stepPlace,7),linespec,'MarkerSize',8);
         handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
     end
-    if(handles.stepPlace ~= handles.HurricaneIndex(handles.choice,2))
+    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
         handles.stepPlace = handles.stepPlace + 1;
     else
         disp('Current Hurricane is fully plotted.')
@@ -319,18 +321,17 @@ end
 
 % --- Executes on button press in clear.
 function clear_Callback(hObject, eventdata, handles)
-    % hObject    handle to clear (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-    try
-        for i=1:41198
+   
+    for i=1:41198
+        try
             if(handles.pointsPlotted(i) == 1)
                 handles.pointsPlotted(i) = 0;
                 delete(handles.points(i));
             end
+        catch
+            disp('clear ain`t happy')
         end
-    catch
-        disp('clear ain`t happy')
     end
     
+    guidata(hObject,handles);
 end
