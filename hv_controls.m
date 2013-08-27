@@ -55,7 +55,9 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     s = load('HurDat_1851_2010.mat');
     handles.hurDat = s.hurDat;
-    handles.points = zeros(1,41198);   % store handles to plotted points
+    handles.points = zeros(41198,1);   % store handles to plotted points
+    handles.pointsPlotted = zeros(41198,1); %because matlab doesn't like combining
+                                            %a bool tracker with handles..
 
 
     % Create a 1442x3 matrix containing the indeces of a specific hurricane
@@ -85,6 +87,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     % Load up the map
     worldmap([0 70],[-120,0])
+    %axesm
     load coast
     plotm(lat,long)
     whitebg('k')
@@ -159,14 +162,17 @@ function undo_Callback(hObject, eventdata, handles)
 
     if(handles.stepPlace ~= 0) % "step back"
         %disp(strcat('attempting backstep from stepPlace: ',num2str(handles.stepPlace)))
-
+        
+        handles.stepPlace = handles.stepPlace - 1;
+        
         try
             delete(handles.points(handles.stepPlace));
+            handles.pointsPlotted(handles.stepPlace) = 0;
         catch err
             disp('Error: somethin` ain`t right with stepping back..')
         end
 
-        handles.stepPlace = handles.stepPlace - 1;
+        
 
         % Reset stepPlace if decremented past first index
             %disp(strcat('first index of current hurricane: ',...
@@ -188,6 +194,7 @@ function undo_Callback(hObject, eventdata, handles)
             k = handles.HurricaneIndex(handles.HurIndexHist(n),2);
             for i=j:k
                 delete(handles.points(i));
+                handles.pointPlotted(i) = 0;
             end
         catch err
             disp('caught it, we`re good')
@@ -249,11 +256,12 @@ function stepPath_Callback(hObject, eventdata, handles)
     if(handles.plotStop == 0)
         handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
             handles.hurDat(handles.stepPlace,7),linespec,'MarkerSize',8);
+        handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
     end
     if(handles.stepPlace ~= handles.HurricaneIndex(handles.choice,2))
         handles.stepPlace = handles.stepPlace + 1;
     else
-        disp('Current Hurricane is already fully plotted. Simmer down nah.')
+        disp('Current Hurricane is fully plotted.')
         handles.plotStop = 1; %Step will not plot the last coordinate again
                               %in order to not lose the handle
     end
@@ -296,6 +304,8 @@ function plotPath_Callback(hObject, eventdata, handles)
             % Aaaaand plot the coordinate
             handles.points(i) = plotm(handles.hurDat(i,6),handles.hurDat(i,7),...
                 linespec,'MarkerSize',8);
+            handles.pointsPlotted(i) = 1;
+            
 
         end
         
@@ -314,9 +324,13 @@ function clear_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     try
         for i=1:41198
-            delete(handles.points(i))
+            if(handles.pointsPlotted(i) == 1)
+                handles.pointsPlotted(i) = 0;
+                delete(handles.points(i));
+            end
         end
     catch
         disp('clear ain`t happy')
     end
+    
 end
