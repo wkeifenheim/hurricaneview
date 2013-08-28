@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 23-Aug-2013 13:54:13
+% Last Modified by GUIDE v2.5 28-Aug-2013 11:06:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -85,7 +85,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % coordinate doesn't overwrite the cooresponding original handle
     handles.plotStop = 0;
 
-    % Load up the map
+    % Load up the map (coastlines only)
     worldmap([0 70],[-120,0])
     %axesm
     load coast
@@ -94,6 +94,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     %axesm mollweid
     %framem('FEdgeColor','blue','FLineWidth',0.5)
     %plotm(lat,long,'LineWidth',1,'Color','blue')
+    
+    %Topological Map
+    %load topo
+    %[lat lon] = meshgrat(topo,topolegend,[90 180]);
+    %pcolorm(lat,lon,topo)
+    %demcmap(topo)
+    %tightmap
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
@@ -182,6 +189,7 @@ function undo_Callback(hObject, eventdata, handles)
             %disp(strcat('stepPlace:',num2str(handles.stepPlace),' < ',num2str(handles.HurricaneIndex(handles.HurIndexHist(n),1))))
         if(handles.stepPlace < handles.HurricaneIndex(handles.HurIndexHist(n),1))
             handles.stepPlace = 0;
+            handles.plotStop = 0;
             % And pop this hurricane off the history stack
             if(n == 1)
                 handles.HurIndexHist = 0;
@@ -319,7 +327,8 @@ function plotPath_Callback(hObject, eventdata, handles)
     guidata(hObject,handles)
 end
 
-% --- Executes on button press in clear.
+% --- Executes on button press in clear. Currently problematic, as you 
+% cannot replot a point once it has been cleared by this function
 function clear_Callback(hObject, eventdata, handles)
    
     for i=1:41198
@@ -334,4 +343,158 @@ function clear_Callback(hObject, eventdata, handles)
     end
     
     guidata(hObject,handles);
+end
+
+
+
+function inputYear_Callback(hObject, eventdata, handles)
+
+    handles.year = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+    
+end
+
+% --- Executes during object creation, after setting all properties.
+function inputYear_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to inputYear (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+
+
+function inputMonth_Callback(hObject, eventdata, handles)
+
+    handles.month = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+    
+end
+
+% --- Executes during object creation, after setting all properties.
+function inputMonth_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+function inputDay_Callback(hObject, eventdata, handles)
+
+    handles.day = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+
+end
+
+% --- Executes during object creation, after setting all properties.
+function inputDay_CreateFcn(hObject, eventdata, handles)
+
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+
+% --- Executes on button press in dateStep.
+function dateStep_Callback(hObject, eventdata, handles)
+    
+    % Used to decide how specific of a date to start from
+    if(isfloat(handles.year))
+        yearEntered = true;
+    end
+    if(isfloat(handles.month))
+        monthEntered = true;
+    end
+    if(isfloat(handles.day))
+        dayEntered = true;
+    end
+
+    
+    if(handles.stepPlace == 0)
+        if(yearEntered && monthEntered && dayEntered)
+            for i=1:41198 % TODO: Binary Search
+                if(handles.hurDat(i,2) == handles.year &&...
+                        handles.hurDat(i,3) == handles.month &&...
+                        handles.hurDat(i,4) == handles.day)
+                    handles.stepPlace = i;
+                    handles.choice = handles.hurDat(i,1);
+                    %i = 41198; % end the loop
+                    break
+                end
+            end
+        %If first instance of plotting this
+        %hurricane, assign; otherwise, append
+        if(handles.HurIndexHist == 0) %initial case
+            handles.HurIndexHist = handles.choice;
+        else
+            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
+        end    
+        % TODO: Case for year/month and only year being entered
+        else
+            disp('You must enter at least a valid year to use this function')
+        end
+    end
+    
+    handles.choice = handles.hurDat(handles.stepPlace);
+    
+
+
+    %Determine appropriate hurricane category color
+    
+    switch handles.hurDat(handles.stepPlace,12)
+        case 5
+            color = [0 0 0]; %category 5 (black)
+        case 4
+            color = [1 0 0]; %category 4 (red)
+        case 3
+            color = [0 1 0]; %category 3 (green)
+        case 2
+            color = [0 0 1]; %category 2 (blue)
+        case 1
+            color = [1 1 0]; %category 1 (yellow)
+        case 0
+            color = [0 1 1]; %tropical storm (cyan)
+        case -1
+            color = [1 0 1]; %tropical depression (pink)
+        case -2
+            color = [0.75 0.75 0.75]; %tropical disturbance (gray)
+        case -3
+            color = [0 1 1]; %subtropical storm (cyan)
+        case -4
+            color = [1 0 1]; %subtropical depression (pink)
+        case -5
+            color = [0 1 1]; %extratropical storm (cyan)
+        case -6
+            color = [1 0 1]; %extratropical depression (pink)
+        case -7
+            color = [0.39 0.39 0.78]; %low (purple)
+        case -8
+            color = [0.9 0.31 0]; %no type specified (orange)
+    end
+
+    % Plot the step, and increment the step tracker
+    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+    if(handles.plotStop == 0)
+        handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
+            handles.hurDat(handles.stepPlace,7),'*','MarkerSize',8,'MarkerEdgeColor',...
+            color);
+        handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+    end
+    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
+        handles.stepPlace = handles.stepPlace + 1;
+    else
+        disp('Current Hurricane is fully plotted.')
+        handles.plotStop = 1; %Step will not plot the last coordinate again
+                              %in order to not lose the handle
+    end
+
+    guidata(hObject,handles);
+    
+
 end
