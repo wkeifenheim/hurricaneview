@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 28-Aug-2013 11:06:53
+% Last Modified by GUIDE v2.5 28-Aug-2013 15:59:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -104,6 +104,10 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
+    
+    % Load ssh lat/lon data
+    handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
+        'lat','lon');
 
     % Update handles structure
     guidata(hObject, handles);
@@ -497,4 +501,26 @@ function dateStep_Callback(hObject, eventdata, handles)
     guidata(hObject,handles);
     
 
+end
+
+
+% --- Executes on button press in drawBodies.
+function drawBodies_Callback(hObject, eventdata, handles)
+
+    handles.canvas = zeros(721, 1440, 'uint8');
+    
+    handles.eddy2 = load('/project/expeditions/eddies_project_data/results/ESv2-0823/anticyc_19930915.mat');
+    handles.eddy1 = load('/project/expeditions/eddies_project_data/results/ESv2-0823/cyclonic_19930915.mat');
+    
+    % Anticyclonic eddies
+    for i = 1:length(handles.eddy1.eddies)
+        handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
+    end
+    for i = 1:length(handles.eddy2.eddies)
+        handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+    end
+
+    pcolorm(handles.ssh.lat,handles.ssh.lon,handles.canvas)
+    
+    guidata(hObject,handles);
 end
