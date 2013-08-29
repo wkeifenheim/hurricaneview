@@ -91,6 +91,13 @@ function [anticycFile cyclonicFile] = findEddies(year, month, day)
         end
     end
     
+    if(length(day) < 2)
+        day = strcat('0',day);
+    end
+    if(length(month) < 2)
+        month = strcat('0',month);
+    end
+    
     anticycFile = strcat('/project/expeditions/eddies_project_data/results/ESv2-0823/',...
         'anticyc_', year, month, day, '.mat');
     cyclonicFile = strcat('/project/expeditions/eddies_project_data/results/ESv2-0823/',...

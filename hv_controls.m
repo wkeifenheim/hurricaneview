@@ -81,9 +81,14 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % Handle for keeping track of plotting hurricanes stepwise
     handles.stepPlace = 0;
     
-    % Used so attempting to step repeatedly on the last hurricane
+    % Attempting to step repeatedly on the last hurricane
     % coordinate doesn't overwrite the cooresponding original handle
     handles.plotStop = 0;
+    
+    % used to handle drawing eddy bodies only around the hurricane path
+    % Rows: Latitute Longitude
+    % Columns: Min Max
+    handles.coordLimits = zeros(2);
 
     % Load up the map (coastlines only)
     worldmap([0 70],[-120,0])
@@ -101,13 +106,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     %pcolorm(lat,lon,topo)
     %demcmap(topo)
     %tightmap
-
-    % Choose default command line output for hv_controls
-    handles.output = hObject;
     
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
         'lat','lon');
+
+    % Choose default command line output for hv_controls
+    handles.output = hObject;
 
     % Update handles structure
     guidata(hObject, handles);
@@ -349,8 +354,6 @@ function clear_Callback(hObject, eventdata, handles)
     guidata(hObject,handles);
 end
 
-
-
 function inputYear_Callback(hObject, eventdata, handles)
 
     handles.year = str2double(get(hObject,'String'));
@@ -371,7 +374,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 end
-
 
 
 function inputMonth_Callback(hObject, eventdata, handles)
@@ -420,6 +422,8 @@ function dateStep_Callback(hObject, eventdata, handles)
     end
 
     
+    
+    % TODO: case where only a year or year/month is entered
     if(handles.stepPlace == 0)
         if(yearEntered && monthEntered && dayEntered)
             for i=1:41198 % TODO: Binary Search
@@ -443,6 +447,21 @@ function dateStep_Callback(hObject, eventdata, handles)
         else
             disp('You must enter at least a valid year to use this function')
         end
+        
+        % Find the lat/lon bounds of the selected hurricane
+        currentHurricane = handles.hurDat(handles.stepPlace,1);
+        for i=handles.stepPlace + 1:41198
+            if(currentHurricane ~= handles.hurDat(i,1))
+                handles.coordLimits(1,1) = min(handles.hurDat(handles.stepPlace:i-1, 6));
+                handles.coordLimits(1,2) = max(handles.hurDat(handles.stepPlace:i-1, 6));
+                handles.coordLimits(2,1) = min(handles.hurDat(handles.stepPlace:i-1, 7));
+                handles.coordLimits(2,2) = max(handles.hurDat(handles.stepPlace:i-1, 6));
+                break
+            end
+        end
+            
+        
+        
     end
     
     handles.choice = handles.hurDat(handles.stepPlace);
@@ -484,6 +503,39 @@ function dateStep_Callback(hObject, eventdata, handles)
 
     % Plot the step, and increment the step tracker
     disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+    % some business to create the proper name string for loading eddy
+    % bodies
+    step = handles.stepPlace;
+    year = num2str(handles.hurDat(step,2));
+    month = num2str(handles.hurDat(step,3));
+    day = num2str(handles.hurDat(step,4));
+    [anticycFile, cyclonicFile] = findEddies(year, month, day);
+
+    handles.canvas = zeros(721, 1440, 'uint8');
+    
+    handles.eddy2 = load(anticycFile);
+    handles.eddy1 = load(cyclonicFile);
+    
+    for i = 1:length(handles.eddy1.eddies)
+        handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
+    end
+    for i = 1:length(handles.eddy2.eddies)
+        handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+    end
+
+    
+    % Function to return min/max value of lat/long, corresponding to current
+    % hurricane being plotted, to restrict display of eddy bodies
+    [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+    handles.coordLimits, handles.ssh);
+    
+    tempCanvas = zeros(721,1440, 'uint8');
+    
+    tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+        handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
+    
+    pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+    
     if(handles.plotStop == 0)
         handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
             handles.hurDat(handles.stepPlace,7),'*','MarkerSize',8,'MarkerEdgeColor',...
@@ -502,7 +554,6 @@ function dateStep_Callback(hObject, eventdata, handles)
     
 
 end
-
 
 % --- Executes on button press in drawBodies.
 function drawBodies_Callback(hObject, eventdata, handles)
@@ -531,14 +582,15 @@ function drawBodies_Callback(hObject, eventdata, handles)
     [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
     20, 40, -80, -20, handles.ssh);
     
-    pcolorm(handles.ssh.lat(latIndexStart:latIndexEnd),handles.ssh.lon(...
-        lonIndexStart:lonIndexEnd),handles.canvas(latIndexStart:latIndexEnd,...
-        lonIndexStart:lonIndexEnd))
+    tempCanvas = zeros(721,1440, 'uint8');
+    
+    tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+        handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
+    
+    pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
     
     guidata(hObject,handles);
 end
-
-
 
 function eddyYear_Callback(hObject, eventdata, handles)
 
@@ -554,7 +606,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-
 function eddyMonth_Callback(hObject, eventdata, handles)
 
     handles.eddyMonth = get(hObject,'String');
@@ -568,7 +619,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
-
 
 function eddyDay_Callback(hObject, eventdata, handles)
 
