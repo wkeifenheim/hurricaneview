@@ -528,7 +528,12 @@ function drawBodies_Callback(hObject, eventdata, handles)
     
     % Function to return min/max value of lat/long, corresponding to current
     % hurricane being plotted, to restrict display of eddy bodies
-    pcolorm(handles.ssh.lat(441:521),handles.ssh.lon(1121:1361),handles.canvas(441:521,1121:1361))
+    [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+    20, 40, -80, -20, handles.ssh);
+    
+    pcolorm(handles.ssh.lat(latIndexStart:latIndexEnd),handles.ssh.lon(...
+        lonIndexStart:lonIndexEnd),handles.canvas(latIndexStart:latIndexEnd,...
+        lonIndexStart:lonIndexEnd))
     
     guidata(hObject,handles);
 end

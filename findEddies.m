@@ -8,7 +8,7 @@
 % Function returns the appropriate filenames (with paths) to the calling
 % process
 % NOTE: Only good for dates 1992.10.14 through 2011.01.19
-% NOTE: DayNumer is a value 1-7 corresponding to a Sun-Sat week
+% NOTE: DayWeekNumber is a value 1-7 corresponding to a Sun-Sat week
 
 function [anticycFile cyclonicFile] = findEddies(year, month, day)
     
