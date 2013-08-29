@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 28-Aug-2013 15:59:27
+% Last Modified by GUIDE v2.5 29-Aug-2013 10:35:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -507,12 +507,17 @@ end
 % --- Executes on button press in drawBodies.
 function drawBodies_Callback(hObject, eventdata, handles)
 
+    % some business to create the proper name string for loading eddy
+    % bodies    
+    [anticycFile cyclonicFile] = findEddies(handles.eddyYear, handles.eddyMonth,...
+        handles.eddyDay);
+    
+
     handles.canvas = zeros(721, 1440, 'uint8');
     
-    handles.eddy2 = load('/project/expeditions/eddies_project_data/results/ESv2-0823/anticyc_19930915.mat');
-    handles.eddy1 = load('/project/expeditions/eddies_project_data/results/ESv2-0823/cyclonic_19930915.mat');
+    handles.eddy2 = load(anticycFile);
+    handles.eddy1 = load(cyclonicFile);
     
-    % Anticyclonic eddies
     for i = 1:length(handles.eddy1.eddies)
         handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
     end
@@ -520,7 +525,58 @@ function drawBodies_Callback(hObject, eventdata, handles)
         handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
     end
 
-    pcolorm(handles.ssh.lat,handles.ssh.lon,handles.canvas)
+    
+    % Function to return min/max value of lat/long, corresponding to current
+    % hurricane being plotted, to restrict display of eddy bodies
+    pcolorm(handles.ssh.lat(441:521),handles.ssh.lon(1121:1361),handles.canvas(441:521,1121:1361))
     
     guidata(hObject,handles);
 end
+
+
+
+function eddyYear_Callback(hObject, eventdata, handles)
+
+    handles.eddyYear = get(hObject,'String');
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function eddyYear_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function eddyMonth_Callback(hObject, eventdata, handles)
+
+    handles.eddyMonth = get(hObject,'String');
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function eddyMonth_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function eddyDay_Callback(hObject, eventdata, handles)
+
+
+    handles.eddyDay = get(hObject,'String');
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function eddyDay_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
