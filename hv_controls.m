@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 29-Aug-2013 10:35:34
+% Last Modified by GUIDE v2.5 29-Aug-2013 17:27:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -96,16 +96,6 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     load coast
     plotm(lat,long)
     whitebg('k')
-    %axesm mollweid
-    %framem('FEdgeColor','blue','FLineWidth',0.5)
-    %plotm(lat,long,'LineWidth',1,'Color','blue')
-    
-    %Topological Map
-    %load topo
-    %[lat lon] = meshgrat(topo,topolegend,[90 180]);
-    %pcolorm(lat,lon,topo)
-    %demcmap(topo)
-    %tightmap
     
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
@@ -131,39 +121,6 @@ function varargout = hv_controls_OutputFcn(hObject, eventdata, handles)
     % Get default command line output from handles structure
     varargout{1} = handles.output;
 
-end
-
-% --- Updates the choice of hurricane input by the user
-function hurChoice_Callback(hObject, eventdata, handles)
-    % hObject    handle to hurChoice (see GCBO)
-    % eventdata  reserved - to be defined in a future version of MATLAB
-    % handles    structure with handles and user data (see GUIDATA)
-
-    % Hints: get(hObject,'String') returns contents of hurChoice as text
-    %        str2double(get(hObject,'String')) returns contents of hurChoice as a double
-
-    user_entry = str2num(get(hObject,'string'));
-    if isnan(user_entry) %not effective after str2double -> str2num change..
-        errordlg('You must enter a numeric value','Bad Input','modal')
-        uicontrol(hObject)
-            return
-    end
-    handles.choice = user_entry;
-    %disp(handles.choice)
-    guidata(hObject,handles);
-end
-
-% --- Executes during object creation, after setting all properties.
-function hurChoice_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to hurChoice (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 end
 
 % --- Executes on button press in clear.
@@ -234,106 +191,6 @@ function undo_Callback(hObject, eventdata, handles)
 
     guidata(hObject,handles);
 
-end
-
-% --- Executes on button press in stepPath.
-function stepPath_Callback(hObject, eventdata, handles)
-    
-    % If the step tracker is outside the range of indices for the current
-    % hurricane, set the tracker to the first index for the hurricane
-    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,1)...
-            || handles.stepPlace > handles.HurricaneIndex(handles.choice,2))
-
-        handles.stepPlace = handles.HurricaneIndex(handles.choice,1);
-        handles.plotStop = 0;
-
-        %If first instance of plotting this
-        %hurricane, assign; otherwise, append
-        if(handles.HurIndexHist == 0) %initial case
-            handles.HurIndexHist = handles.choice;
-        else
-            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
-        end
-    end
-
-    %Determine appropriate hurricane category color
-    windspeed = handles.hurDat(handles.stepPlace,10);
-    if(windspeed <= 95)
-        linespec = 'g*'; %category 1
-    elseif(windspeed <= 110)
-        linespec = 'y*'; %category 2
-    elseif(windspeed <= 129)
-        linespec = 'c*'; %category 3
-    elseif(windspeed <= 156)
-        linespec = 'r*'; %category 4
-    else
-        linespec = 'k*'; %category 5
-    end
-
-    % Plot the step, and increment the step tracker
-    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
-    if(handles.plotStop == 0)
-        handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
-            handles.hurDat(handles.stepPlace,7),linespec,'MarkerSize',8);
-        handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
-    end
-    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
-        handles.stepPlace = handles.stepPlace + 1;
-    else
-        disp('Current Hurricane is fully plotted.')
-        handles.plotStop = 1; %Step will not plot the last coordinate again
-                              %in order to not lose the handle
-    end
-
-    guidata(hObject,handles);
-
-end
-
-% --- Executes on button press in plotPath.
-function plotPath_Callback(hObject, eventdata, handles)
-
-    if(handles.HurricaneIndex(handles.choice,3) == 0)
-        j = handles.HurricaneIndex(handles.choice,1);
-        k = handles.HurricaneIndex(handles.choice,2);
-
-        % Append this hurricane to the history "stack"...
-        if(handles.HurIndexHist == 0) %initial case
-            handles.HurIndexHist = handles.choice;
-        else
-            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
-        end
-
-        % Iterate over the indeces of hurDat cooresponding to the choice of
-        % Hurricane#
-        for i=j:k
-            %Determine appropriate hurricane category color
-            windspeed = handles.hurDat(i,10);
-            if(windspeed <= 95)
-                linespec = 'g*'; %category 1
-            elseif(windspeed <= 110)
-                linespec = 'y*'; %category 2
-            elseif(windspeed <= 129)
-                linespec = 'c*'; %category 3
-            elseif(windspeed <= 156)
-                linespec = 'r*'; %category 4
-            else
-                linespec = 'k*'; %category 5
-            end
-
-            % Aaaaand plot the coordinate
-            handles.points(i) = plotm(handles.hurDat(i,6),handles.hurDat(i,7),...
-                linespec,'MarkerSize',8);
-            handles.pointsPlotted(i) = 1;
-            
-
-        end
-        
-        % Mark the hurricane as plotted (true) in HurricaneIndex
-        handles.HurricaneIndex(handles.choice,3) = 1;
-        
-    end
-    
-    guidata(hObject,handles)
 end
 
 % --- Executes on button press in clear. Currently problematic, as you 
@@ -458,48 +315,13 @@ function dateStep_Callback(hObject, eventdata, handles)
                 handles.coordLimits(2,2) = max(handles.hurDat(handles.stepPlace:i-1, 6));
                 break
             end
-        end
-            
-        
-        
+        end   
     end
     
     handles.choice = handles.hurDat(handles.stepPlace);
     
-
-
     %Determine appropriate hurricane category color
-    
-    switch handles.hurDat(handles.stepPlace,12)
-        case 5
-            color = [0 0 0]; %category 5 (black)
-        case 4
-            color = [1 0 0]; %category 4 (red)
-        case 3
-            color = [0 1 0]; %category 3 (green)
-        case 2
-            color = [0 0 1]; %category 2 (blue)
-        case 1
-            color = [1 1 0]; %category 1 (yellow)
-        case 0
-            color = [0 1 1]; %tropical storm (cyan)
-        case -1
-            color = [1 0 1]; %tropical depression (pink)
-        case -2
-            color = [0.75 0.75 0.75]; %tropical disturbance (gray)
-        case -3
-            color = [0 1 1]; %subtropical storm (cyan)
-        case -4
-            color = [1 0 1]; %subtropical depression (pink)
-        case -5
-            color = [0 1 1]; %extratropical storm (cyan)
-        case -6
-            color = [1 0 1]; %extratropical depression (pink)
-        case -7
-            color = [0.39 0.39 0.78]; %low (purple)
-        case -8
-            color = [0.9 0.31 0]; %no type specified (orange)
-    end
+    color = chooseRGB(handles.hurDat(handles.stepPlace,12));
 
     % Plot the step, and increment the step tracker
     disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
@@ -509,6 +331,7 @@ function dateStep_Callback(hObject, eventdata, handles)
     year = num2str(handles.hurDat(step,2));
     month = num2str(handles.hurDat(step,3));
     day = num2str(handles.hurDat(step,4));
+    
     [anticycFile, cyclonicFile] = findEddies(year, month, day);
 
     handles.canvas = zeros(721, 1440, 'uint8');
@@ -634,4 +457,3 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
-
