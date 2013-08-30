@@ -85,6 +85,11 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % coordinate doesn't overwrite the cooresponding original handle
     handles.plotStop = 0;
     
+    
+    % Counter used so that every step does not need the eddy bodies to be 
+    % redrawn (a serious slowdown issue).
+    handles.nextEddyDraw = 0;
+    
     % used to handle drawing eddy bodies only around the hurricane path
     % Rows: Latitute Longitude
     % Columns: Min Max
@@ -92,7 +97,6 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     % Load up the map (coastlines only)
     worldmap([0 70],[-120,0])
-    %axesm
     load coast
     plotm(lat,long)
     whitebg('k')
@@ -267,6 +271,11 @@ end
 % --- Executes on button press in dateStep.
 function dateStep_Callback(hObject, eventdata, handles)
     
+    if(handles.plotStop == 1)
+        disp('Current hurricane has been fully plotted')
+        return
+    end
+
     % Used to decide how specific of a date to start from
     if(isfloat(handles.year))
         yearEntered = true;
@@ -289,17 +298,23 @@ function dateStep_Callback(hObject, eventdata, handles)
                         handles.hurDat(i,4) == handles.day)
                     handles.stepPlace = i;
                     handles.choice = handles.hurDat(i,1);
-                    %i = 41198; % end the loop
                     break
                 end
             end
-        %If first instance of plotting this
-        %hurricane, assign; otherwise, append
-        if(handles.HurIndexHist == 0) %initial case
-            handles.HurIndexHist = handles.choice;
-        else
-            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
-        end    
+        
+            % If first instance of plotting a
+            % hurricane, assign; otherwise append
+            if(handles.HurIndexHist == 0) %initial case
+                handles.HurIndexHist = handles.choice;
+            else
+                handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
+            end
+            
+            % Determine the day of the week and draw the first eddy bodies
+            step = handles.stepPlace;
+            handles.nextEddyDraw = weekday(handles.hurDat(step,2),...
+                handles.hurDat(step,3), handles.hurDat(step,3));
+            
         % TODO: Case for year/month and only year being entered
         else
             disp('You must enter at least a valid year to use this function')
@@ -307,58 +322,56 @@ function dateStep_Callback(hObject, eventdata, handles)
         
         % Find the lat/lon bounds of the selected hurricane
         currentHurricane = handles.hurDat(handles.stepPlace,1);
-        for i=handles.stepPlace + 1:41198
-            if(currentHurricane ~= handles.hurDat(i,1))
-                handles.coordLimits(1,1) = min(handles.hurDat(handles.stepPlace:i-1, 6));
-                handles.coordLimits(1,2) = max(handles.hurDat(handles.stepPlace:i-1, 6));
-                handles.coordLimits(2,1) = min(handles.hurDat(handles.stepPlace:i-1, 7));
-                handles.coordLimits(2,2) = max(handles.hurDat(handles.stepPlace:i-1, 6));
-                break
-            end
-        end   
+        hurricaneIndeces = handles.HurricaneIndex(currentHurricane,:);
+        handles.coordLimits = getHurricaneBounds(hurricaneIndeces, handles.hurDat);
+        drawEddies()
+           
     end
     
     handles.choice = handles.hurDat(handles.stepPlace);
     
+    function drawEddies()
+
+        % Plot the step, and increment the step tracker
+        disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        % some business to create the proper name string for loading eddy
+        % bodies
+        step = handles.stepPlace;
+        year = num2str(handles.hurDat(step,2));
+        month = num2str(handles.hurDat(step,3));
+        day = num2str(handles.hurDat(step,4));
+
+        [anticycFile, cyclonicFile] = findEddies(year, month, day);
+
+        handles.canvas = zeros(721, 1440, 'uint8');
+
+        handles.eddy2 = load(anticycFile);
+        handles.eddy1 = load(cyclonicFile);
+
+        for i = 1:length(handles.eddy1.eddies)
+            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
+        end
+        for i = 1:length(handles.eddy2.eddies)
+            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+        end
+
+
+        % Function to return min/max value of lat/long, corresponding to current
+        % hurricane being plotted, to restrict display of eddy bodies
+        [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+        handles.coordLimits, handles.ssh);
+
+        tempCanvas = zeros(721,1440, 'uint8');
+
+        tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+            handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
+
+        pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+    end
+
+
     %Determine appropriate hurricane category color
     color = chooseRGB(handles.hurDat(handles.stepPlace,12));
-
-    % Plot the step, and increment the step tracker
-    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
-    % some business to create the proper name string for loading eddy
-    % bodies
-    step = handles.stepPlace;
-    year = num2str(handles.hurDat(step,2));
-    month = num2str(handles.hurDat(step,3));
-    day = num2str(handles.hurDat(step,4));
-    
-    [anticycFile, cyclonicFile] = findEddies(year, month, day);
-
-    handles.canvas = zeros(721, 1440, 'uint8');
-    
-    handles.eddy2 = load(anticycFile);
-    handles.eddy1 = load(cyclonicFile);
-    
-    for i = 1:length(handles.eddy1.eddies)
-        handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
-    end
-    for i = 1:length(handles.eddy2.eddies)
-        handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
-    end
-
-    
-    % Function to return min/max value of lat/long, corresponding to current
-    % hurricane being plotted, to restrict display of eddy bodies
-    [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
-    handles.coordLimits, handles.ssh);
-    
-    tempCanvas = zeros(721,1440, 'uint8');
-    
-    tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
-        handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
-    
-    pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
-    
     if(handles.plotStop == 0)
         handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
             handles.hurDat(handles.stepPlace,7),'*','MarkerSize',8,'MarkerEdgeColor',...
