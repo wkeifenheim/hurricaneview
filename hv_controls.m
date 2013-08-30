@@ -272,10 +272,13 @@ end
 function dateStep_Callback(hObject, eventdata, handles)
     
     if(handles.plotStop == 1)
-        disp('Current hurricane has been fully plotted')
+        errordlg('Current hurricane has been fully plotted');
         return
     end
 
+    offset = 0;
+        
+    
     % Used to decide how specific of a date to start from
     if(isfloat(handles.year))
         yearEntered = true;
@@ -312,8 +315,12 @@ function dateStep_Callback(hObject, eventdata, handles)
             
             % Determine the day of the week and draw the first eddy bodies
             step = handles.stepPlace;
-            handles.nextEddyDraw = weekday(handles.hurDat(step,2),...
-                handles.hurDat(step,3), handles.hurDat(step,3));
+            year = num2str(handles.hurDat(step,2));
+            month = num2str(handles.hurDat(step,3));
+            day = num2str(handles.hurDat(step,4));
+            offset = handles.hurDat(step,5)/6 + ((weekday(strcat(year, '-',...
+                month, '-', day)) - 1) * 4);
+            handles.nextEddyDraw = 28;
             
         % TODO: Case for year/month and only year being entered
         else
@@ -328,12 +335,20 @@ function dateStep_Callback(hObject, eventdata, handles)
            
     end
     
-    handles.choice = handles.hurDat(handles.stepPlace);
+    handles.choice = handles.hurDat(handles.stepPlace); % Is the vestigial?
+    
+    % Keep track of when next to draw eddy bodies
+    if(handles.nextEddyDraw == 0)
+        drawEddies()
+        handles.nextEddyDraw = 28; % Four time steps per day
+    else
+        handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
+    end
     
     function drawEddies()
 
-        % Plot the step, and increment the step tracker
-        disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        
+        disp('Drawing eddy bodies. This will take a few seconds')
         % some business to create the proper name string for loading eddy
         % bodies
         step = handles.stepPlace;
@@ -370,11 +385,12 @@ function dateStep_Callback(hObject, eventdata, handles)
     end
 
 
-    %Determine appropriate hurricane category color
+    %Determine appropriate hurricane category color and plot it
     color = chooseRGB(handles.hurDat(handles.stepPlace,12));
+    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
     if(handles.plotStop == 0)
         handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
-            handles.hurDat(handles.stepPlace,7),'*','MarkerSize',8,'MarkerEdgeColor',...
+            handles.hurDat(handles.stepPlace,7),'*','MarkerSize',10,'MarkerEdgeColor',...
             color);
         handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
     end
@@ -396,8 +412,8 @@ function drawBodies_Callback(hObject, eventdata, handles)
 
     % some business to create the proper name string for loading eddy
     % bodies    
-    [anticycFile cyclonicFile] = findEddies(handles.eddyYear, handles.eddyMonth,...
-        handles.eddyDay);
+    [anticycFile cyclonicFile] = findEddies(num2str(handles.eddyYear),...
+        num2str(handles.eddyMonth), num2str(handles.eddyDay));
     
 
     handles.canvas = zeros(721, 1440, 'uint8');
@@ -412,18 +428,7 @@ function drawBodies_Callback(hObject, eventdata, handles)
         handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
     end
 
-    
-    % Function to return min/max value of lat/long, corresponding to current
-    % hurricane being plotted, to restrict display of eddy bodies
-    [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
-    20, 40, -80, -20, handles.ssh);
-    
-    tempCanvas = zeros(721,1440, 'uint8');
-    
-    tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
-        handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
-    
-    pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+    pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
     
     guidata(hObject,handles);
 end

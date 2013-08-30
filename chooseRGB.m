@@ -31,4 +31,7 @@ function [RGB] = chooseRGB(category)
         case -8
             RGB = [0.9 0.31 0]; %no type specified (orange)
     end
+    
+    % Delete Me!!!!
+    RGB = [1 1 1];
 end
