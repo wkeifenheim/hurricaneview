@@ -33,5 +33,5 @@ function [RGB] = chooseRGB(category)
     end
     
     % Delete Me!!!!
-    RGB = [1 1 1];
+    %RGB = [1 1 1];
 end

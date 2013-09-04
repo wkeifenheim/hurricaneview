@@ -1,3 +1,4 @@
+
 function varargout = hv_controls(varargin)
 % HV_CONTROLS MATLAB code for hv_controls.fig
 %      HV_CONTROLS, by itself, creates a new HV_CONTROLS or raises the existing
@@ -22,7 +23,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 29-Aug-2013 17:27:05
+% Last Modified by GUIDE v2.5 03-Sep-2013 12:22:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -94,6 +95,9 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % Rows: Latitute Longitude
     % Columns: Min Max
     handles.coordLimits = zeros(2);
+    
+    % Current hurricane #
+    handles.choice = 0;
 
     % Load up the map (coastlines only)
     worldmap([0 70],[-120,0])
@@ -474,4 +478,141 @@ function eddyDay_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
+
+
+function getHurNum_Callback(hObject, eventdata, handles)
+
+    handles.choice = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+    
+end
+
+% --- Executes during object creation, after setting all properties.
+function getHurNum_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to getHurNum (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+% --- Executes on button press in stepFromHurNum.
+function stepFromHurNum_Callback(hObject, eventdata, handles)
+
+    if(handles.plotStop == 1)
+        errordlg('Current hurricane has been fully plotted');
+        return
+    end
+
+    offset = 0;
+    
+    
+    % If this is the first call to this method..
+    if (handles.stepPlace == 0)
+
+        % Get beginning index and retrieve date
+        tempIndex = handles.HurricaneIndex(handles.choice,1);
+        handles.year = handles.hurDat(tempIndex,2);
+        handles.month = handles.hurDat(tempIndex,3);
+        handles.day = handles.hurDat(tempIndex,4);
+        handles.stepPlace = tempIndex;
+        
+        % If first instance of plotting a
+        % hurricane, assign; otherwise append
+        if(handles.HurIndexHist == 0) %initial case
+            handles.HurIndexHist = handles.choice;
+        else
+            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
+        end
+
+        % Determine the day of the week and draw the first eddy bodies
+         step = handles.stepPlace;
+         year = num2str(handles.hurDat(step,2));
+         month = num2str(handles.hurDat(step,3));
+         day = num2str(handles.hurDat(step,4));
+        offset = handles.hurDat(tempIndex,5)/6 + ((weekday(strcat(year, '-',...
+            month, '-', day)) - 1) * 4);
+        handles.nextEddyDraw = 28;
+        
+        % Find the lat/lon bounds of the selected hurricane
+        currentHurricane = handles.hurDat(handles.stepPlace,1);
+        hurricaneIndeces = handles.HurricaneIndex(currentHurricane,:);
+        handles.coordLimits = getHurricaneBounds(hurricaneIndeces, handles.hurDat);
+        drawEddies() %like it says
+        
+    end
+    
+%     handles.choice = handles.hurDat(handles.stepPlace); % Is the vestigial?
+    
+    % Keep track of when next to draw eddy bodies
+    if(handles.nextEddyDraw == 0)
+        drawEddies()
+        handles.nextEddyDraw = 28; % Four time steps per day
+    else
+        handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
+    end
+    
+    function drawEddies()
+
+        
+        disp('Drawing eddy bodies. This will take a few seconds')
+        % some business to create the proper name string for loading eddy
+        % bodies
+        step = handles.stepPlace;
+        year = num2str(handles.hurDat(step,2));
+        month = num2str(handles.hurDat(step,3));
+        day = num2str(handles.hurDat(step,4));
+
+        [anticycFile, cyclonicFile] = findEddies(year, month, day);
+
+        handles.canvas = zeros(721, 1440, 'uint8');
+
+        handles.eddy2 = load(anticycFile);
+        handles.eddy1 = load(cyclonicFile);
+
+        for i = 1:length(handles.eddy1.eddies)
+            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
+        end
+        for i = 1:length(handles.eddy2.eddies)
+            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+        end
+
+
+        % Function to return min/max value of lat/long, corresponding to current
+        % hurricane being plotted, to restrict display of eddy bodies
+        [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+        handles.coordLimits, handles.ssh);
+
+        tempCanvas = zeros(721,1440, 'uint8');
+
+        tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+            handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
+
+        pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+    end
+  
+        %Determine appropriate hurricane category color and plot it
+    color = chooseRGB(handles.hurDat(handles.stepPlace,12));
+    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+    if(handles.plotStop == 0)
+        handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
+            handles.hurDat(handles.stepPlace,7),'o','MarkerSize',10,'MarkerEdgeColor',...
+            color, 'MarkerFaceColor',color);
+        handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+    end
+    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
+        handles.stepPlace = handles.stepPlace + 1;
+    else
+        disp('Current Hurricane is fully plotted.')
+        handles.plotStop = 1; %Step will not plot the last coordinate again
+                              %in order to not lose the handle
+    end
+
+    guidata(hObject,handles);
 end
