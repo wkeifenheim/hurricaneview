@@ -368,10 +368,10 @@ function dateStep_Callback(hObject, eventdata, handles)
         handles.eddy1 = load(cyclonicFile);
 
         for i = 1:length(handles.eddy1.eddies)
-            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
+            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic green
         end
         for i = 1:length(handles.eddy2.eddies)
-            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic red
         end
 
 
