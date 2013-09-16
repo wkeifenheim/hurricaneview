@@ -100,10 +100,12 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.choice = 0;
 
     % Load up the map (coastlines only)
-    worldmap([0 70],[-120,0])
-    load coast
-    plotm(lat,long)
+    %worldmap([0 70],[-120 0])
+    axesm('pcarre', 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0])
+    %load coast
+    %plotm(lat,long)
     whitebg('k')
+    handles.land = shaperead('landareas', 'UseGeoCoords', true);
     
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
@@ -111,6 +113,9 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
+    
+    % Displays the current X,Y coordinates of the mouse cursor when active
+    set(gcf, 'WindowButtonMotionFcn', @mouseMove);
 
     % Update handles structure
     guidata(hObject, handles);
@@ -536,19 +541,17 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
          year = num2str(handles.hurDat(step,2));
          month = num2str(handles.hurDat(step,3));
          day = num2str(handles.hurDat(step,4));
-        offset = handles.hurDat(tempIndex,5)/6 + ((weekday(strcat(year, '-',...
-            month, '-', day)) - 1) * 4);
+         offset = handles.hurDat(tempIndex,5)/6 + ((weekday(strcat(year,...
+             '-', month, '-', day)) - 1) * 4);
         handles.nextEddyDraw = 28;
         
         % Find the lat/lon bounds of the selected hurricane
         currentHurricane = handles.hurDat(handles.stepPlace,1);
         hurricaneIndeces = handles.HurricaneIndex(currentHurricane,:);
         handles.coordLimits = getHurricaneBounds(hurricaneIndeces, handles.hurDat);
-        drawEddies() %like it says
+        drawEddies()
         
     end
-    
-%     handles.choice = handles.hurDat(handles.stepPlace); % Is the vestigial?
     
     % Keep track of when next to draw eddy bodies
     if(handles.nextEddyDraw == 0)
@@ -579,9 +582,9 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         for i = 1:length(handles.eddy1.eddies)
             handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
         end
-        for i = 1:length(handles.eddy2.eddies)
-            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
-        end
+         for i = 1:length(handles.eddy2.eddies)
+             handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+         end
 
 
         % Function to return min/max value of lat/long, corresponding to current
@@ -589,12 +592,13 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
         handles.coordLimits, handles.ssh);
 
-        tempCanvas = zeros(721,1440, 'uint8');
+%         tempCanvas = zeros(721,1440, 'uint8');
+% 
+%         tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+%             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
 
-        tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
-            handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
-
-        pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+        pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
+        geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
     end
   
         %Determine appropriate hurricane category color and plot it
