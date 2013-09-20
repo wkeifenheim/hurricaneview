@@ -99,13 +99,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % Current hurricane #
     handles.choice = 0;
 
-    % Load up the map (coastlines only)
+    % Load up the map
     %worldmap([0 70],[-120 0])
     axesm('pcarre', 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0])
     %load coast
     %plotm(lat,long)
     whitebg('k')
-    handles.land = shaperead('landareas', 'UseGeoCoords', true);
+    handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
     
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
@@ -115,7 +115,11 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.output = hObject;
     
     % Displays the current X,Y coordinates of the mouse cursor when active
-    set(gcf, 'WindowButtonMotionFcn', @mouseMove);
+    % not currently working
+    %set(gcf, 'WindowButtonMotionFcn', @mouseMove);
+    
+    %Display lat,lon coordinates on mouse click, needs an on/off toggle
+    %set(gcf, 'WindowButtonDownFcn', @mouseCoords);
 
     % Update handles structure
     guidata(hObject, handles);
@@ -285,6 +289,11 @@ function dateStep_Callback(hObject, eventdata, handles)
         return
     end
 
+    function heyhey()
+        disp('hey hey')
+    end
+    heyhey()
+
     offset = 0;
         
     
@@ -340,7 +349,7 @@ function dateStep_Callback(hObject, eventdata, handles)
         currentHurricane = handles.hurDat(handles.stepPlace,1);
         hurricaneIndeces = handles.HurricaneIndex(currentHurricane,:);
         handles.coordLimits = getHurricaneBounds(hurricaneIndeces, handles.hurDat);
-        drawEddies()
+        %drawEddies()
            
     end
     
@@ -354,44 +363,44 @@ function dateStep_Callback(hObject, eventdata, handles)
         handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
     end
     
-    function drawEddies()
-
-        
-        disp('Drawing eddy bodies. This will take a few seconds')
-        % some business to create the proper name string for loading eddy
-        % bodies
-        step = handles.stepPlace;
-        year = num2str(handles.hurDat(step,2));
-        month = num2str(handles.hurDat(step,3));
-        day = num2str(handles.hurDat(step,4));
-
-        [anticycFile, cyclonicFile] = findEddies(year, month, day);
-
-        handles.canvas = zeros(721, 1440, 'uint8');
-
-        handles.eddy2 = load(anticycFile);
-        handles.eddy1 = load(cyclonicFile);
-
-        for i = 1:length(handles.eddy1.eddies)
-            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic green
-        end
-        for i = 1:length(handles.eddy2.eddies)
-            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic red
-        end
-
-
-        % Function to return min/max value of lat/long, corresponding to current
-        % hurricane being plotted, to restrict display of eddy bodies
-        [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
-        handles.coordLimits, handles.ssh);
-
-        tempCanvas = zeros(721,1440, 'uint8');
-
-        tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
-            handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
-
-        pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
-    end
+%     function drawEddies()
+% 
+%         
+%         disp('Drawing eddy bodies. This will take a few seconds')
+%         % some business to create the proper name string for loading eddy
+%         % bodies
+%         step = handles.stepPlace;
+%         year = num2str(handles.hurDat(step,2));
+%         month = num2str(handles.hurDat(step,3));
+%         day = num2str(handles.hurDat(step,4));
+% 
+%         [anticycFile, cyclonicFile] = findEddies(year, month, day);
+% 
+%         handles.canvas = zeros(721, 1440, 'uint8');
+% 
+%         handles.eddy2 = load(anticycFile);
+%         handles.eddy1 = load(cyclonicFile);
+% 
+%         for i = 1:length(handles.eddy1.eddies)
+%             handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic green
+%         end
+%         for i = 1:length(handles.eddy2.eddies)
+%             handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic red
+%         end
+% 
+% 
+%         % Function to return min/max value of lat/long, corresponding to current
+%         % hurricane being plotted, to restrict display of eddy bodies
+%         [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+%         handles.coordLimits, handles.ssh);
+% 
+%         tempCanvas = zeros(721,1440, 'uint8');
+% 
+%         tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
+%             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
+% 
+%         pcolorm(handles.ssh.lat, handles.ssh.lon, tempCanvas)
+%     end
 
 
     %Determine appropriate hurricane category color and plot it
@@ -413,6 +422,8 @@ function dateStep_Callback(hObject, eventdata, handles)
 
     guidata(hObject,handles);
     
+    ColorMap = get(gcf, 'Colormap')
+    disp(ColorMap)
 
 end
 
@@ -600,23 +611,36 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
         geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
     end
-  
+
+    if(handles.pointsPlotted(handles.stepPlace-1) == 1)
+        i = handles.stepPlace-1;
+        while(handles.pointsPlotted(i) == 1)
+            delete(handles.points(i));
+            handles.pointPlotted(i) = 0;
+            i = i - 1;
+        end
+    end
+
+    for i=handles.nextEddyDraw:-1:0
         %Determine appropriate hurricane category color and plot it
-    color = chooseRGB(handles.hurDat(handles.stepPlace,12));
-    disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
-    if(handles.plotStop == 0)
-        handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
-            handles.hurDat(handles.stepPlace,7),'o','MarkerSize',10,'MarkerEdgeColor',...
-            color, 'MarkerFaceColor',color);
-        handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+        color = chooseRGB(handles.hurDat(handles.stepPlace,12));
+        disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        if(handles.plotStop == 0)
+            handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
+                handles.hurDat(handles.stepPlace,7),'o','MarkerSize',10,'MarkerEdgeColor',...
+                color, 'MarkerFaceColor',color);
+            handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+        end
+        if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
+            handles.stepPlace = handles.stepPlace + 1;
+        else
+            disp('Current Hurricane is fully plotted.')
+            handles.plotStop = 1; %Step will not plot the last coordinate again
+                                  %in order to not lose the handle
+        end
     end
-    if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
-        handles.stepPlace = handles.stepPlace + 1;
-    else
-        disp('Current Hurricane is fully plotted.')
-        handles.plotStop = 1; %Step will not plot the last coordinate again
-                              %in order to not lose the handle
-    end
+    
+    handles.nextEddyDraw = 0;
 
     guidata(hObject,handles);
 end
