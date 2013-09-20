@@ -102,13 +102,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % Load up the map
     %worldmap([0 70],[-120 0])
     axesm('pcarre', 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0])
-    %load coast
-    %plotm(lat,long)
+    load coast
+    plotm(lat,long)
     whitebg('k')
     handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
     
     % Load ssh lat/lon data
-    handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_nan.mat',...
+    handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
 
     % Choose default command line output for hv_controls
@@ -568,8 +568,8 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
     if(handles.nextEddyDraw == 0)
         drawEddies()
         handles.nextEddyDraw = 28; % Four time steps per day
-    else
-        handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
+     else
+         handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
     end
     
     function drawEddies()
@@ -609,7 +609,7 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
 %             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
 
         pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
-        geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
+        %geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
     end
 
     if(handles.pointsPlotted(handles.stepPlace-1) == 1)
