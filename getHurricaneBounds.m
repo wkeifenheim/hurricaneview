@@ -1,6 +1,6 @@
+%Only display the portion of the world cooresponding to the bounds of a
+%given hurricane
 function [ hurricaneBounds ] = getHurricaneBounds(hurricaneIndeces,  hurDat)
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
 
     start = hurricaneIndeces(1);
     finish = hurricaneIndeces(2);

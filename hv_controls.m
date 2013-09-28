@@ -98,10 +98,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     
     % Current hurricane #
     handles.choice = 0;
+    
+    % Establish colorScale for hurricane intensity
+    handles.colorScale = jet(181); %for min/max of 10/160 kt
 
     % Load up the map
     %worldmap([0 70],[-120 0])
-    axesm('pcarre', 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0])
+    handles.figure = axesm('pcarre', 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
@@ -608,7 +611,7 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
 %         tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
 %             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
 
-        pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
+        handles.surface = pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
         %geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
     end
 
@@ -623,7 +626,8 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
 
     for i=handles.nextEddyDraw:-1:0
         %Determine appropriate hurricane category color and plot it
-        color = chooseRGB(handles.hurDat(handles.stepPlace,12));
+        %color = chooseRGB(handles.hurDat(handles.stepPlace,12));
+        color = handles.colorScale((handles.hurDat(handles.stepPlace,10) - 9), :);
         disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
         if(handles.plotStop == 0)
             handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...

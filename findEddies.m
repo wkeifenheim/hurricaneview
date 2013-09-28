@@ -10,7 +10,7 @@
 % NOTE: Only good for dates 1992.10.14 through 2011.01.19
 % NOTE: DayWeekNumber is a value 1-7 corresponding to a Sun-Sat week
 
-function [anticycFile cyclonicFile] = findEddies(year, month, day)
+function [anticycFile, cyclonicFile] = findEddies(year, month, day)
     
     % Find the day of the week.  We're only interested in DayName
     dayWeekNumber = weekday(strcat(year,'-',month,'-',day));
