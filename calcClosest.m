@@ -13,49 +13,54 @@
 % eddyStruct: a copy of the nearest eddy from the antiCyc or cyc file
 
 function [proxType, eddyClass, eddyStruct] = calcClosest(lat, lon,...
-    antiCyc, cyc)
+    antiCyc, cyc, canvas, GeoToSurfaceIndex)
     
     distanceToEddy = Inf('double');
     EddyIndex = [0 0]; % Type [-1,1] and index
+    canvasIndex = findSurfaceCDataIndex(lat, lon, GeoToSurfaceIndex);
+    color = canvas(canvasIndex);
+    %disp(color)
     
-    for i=1 : size(antiCyc.eddies,2)
-        latProximity = abs(lat - antiCyc.eddies(i).Lat);
-        lonProximity = abs(lon - antiCyc.eddies(i).Lon);
-        
-        if(latProximity <= 1.5 && lonProximity <= 1.5)
-            
-            tempDistance = geoddistance(lat, lon, antiCyc.eddies(i).Lat,...
-                antiCyc.eddies(i).Lon);
-            
-            if(tempDistance < distanceToEddy)
-                EddyIndex = [-1, i];
-            end
-            
-        else
-            % do nothing
-        end
-        
-    end
-    
+    if(color ~= 1)
+        for i=1 : size(antiCyc.eddies,2)
+            latProximity = abs(lat - antiCyc.eddies(i).Lat);
+            lonProximity = abs(lon - antiCyc.eddies(i).Lon);
 
-    for i=1 : size(cyc.eddies,2)
-        latProximity = abs(lat - cyc.eddies(i).Lat);
-        lonProximity = abs(lon - cyc.eddies(i).Lon);
-        
-        if(latProximity <= 1.5 && lonProximity <= 1.5)
-            
-            tempDistance = geoddistance(lat, lon, cyc.eddies(i).Lat,...
-                cyc.eddies(i).Lon);
-            
-            if(tempDistance < distanceToEddy)
-                EddyIndex = [1, i];
+            if(latProximity <= 3.5 && lonProximity <= 3.5)
+
+                tempDistance = geoddistance(lat, lon, antiCyc.eddies(i).Lat,...
+                    antiCyc.eddies(i).Lon);
+
+                if(tempDistance < distanceToEddy)
+                    EddyIndex = [-1, i];
+                end
+
+            else
+                % do nothing
             end
-            
-        else
-            % do nothing
+
+        end    
+
+    elseif(color ~= 2)
+        for i=1 : size(cyc.eddies,2)
+            latProximity = abs(lat - cyc.eddies(i).Lat);
+            lonProximity = abs(lon - cyc.eddies(i).Lon);
+
+            if(latProximity <= 2.5 && lonProximity <= 2.5)
+
+                tempDistance = geoddistance(lat, lon, cyc.eddies(i).Lat,...
+                    cyc.eddies(i).Lon);
+
+                if(tempDistance < distanceToEddy)
+                    EddyIndex = [1, i];
+                end
+
+            else
+                % do nothing
+            end
+
         end
-        
-    end
+    end 
 
     
     % Found something
