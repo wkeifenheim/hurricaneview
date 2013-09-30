@@ -22,8 +22,8 @@ function CDataIndex = findSurfaceCDataIndex(lat, lon, GeoToSurfaceIndex)
         disp('error, illegal value for lon')
     end
     
-    latXfourIndex = uint32(floor(latXfourIndex))
-    lonXfourIndex = uint32(floor(lonXfourIndex))
+    latXfourIndex = uint32(floor(latXfourIndex));
+    lonXfourIndex = uint32(floor(lonXfourIndex));
     
     CDataIndex = GeoToSurfaceIndex(latXfourIndex, lonXfourIndex);
 end

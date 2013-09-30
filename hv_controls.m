@@ -585,6 +585,9 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         year = num2str(handles.hurDat(step,2));
         month = num2str(handles.hurDat(step,3));
         day = num2str(handles.hurDat(step,4));
+        
+        disp('Drawing eddies cooresponding to the week of [year,month,day]')
+        fprintf('[%s,%s,%s]\n',year,month,day);
 
         [anticycFile, cyclonicFile] = findEddies(year, month, day);
 
@@ -611,7 +614,7 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
 %         tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
 %             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
 
-        handles.surface = pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas)
+        handles.surface = pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas);
         %geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
     end
 
