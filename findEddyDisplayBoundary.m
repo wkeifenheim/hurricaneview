@@ -1,8 +1,10 @@
-function [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
-    coordLimits, eddyData)
 % Takes input lat/lon arguments of the area in which a hurricane's path
 % existed and translates them into indices that will draw eddy bodies only
 % in the area of the hurricane's path
+
+function [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
+    coordLimits, eddyData)
+
 
     latS_found = false;
     latE_found = false;

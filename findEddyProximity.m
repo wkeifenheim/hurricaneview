@@ -1,6 +1,6 @@
 %set i=1 before running
 results = zeros(10860,2);
-i = 1564; %Hurricane Francis - 1992/10/22
+i = 1564; %Hurricane Francis - 1992/10/22691
 
 year = double(delta_ebtrkatlc(i,3));
 month = double(delta_ebtrkatlc(i,4));
