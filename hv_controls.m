@@ -1,4 +1,3 @@
-
 function varargout = hv_controls(varargin)
 % HV_CONTROLS MATLAB code for hv_controls.fig
 %      HV_CONTROLS, by itself, creates a new HV_CONTROLS or raises the existing
@@ -23,27 +22,28 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 02-Oct-2013 09:33:55
+% Last Modified by GUIDE v2.5 07-Oct-2013 11:03:41
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @hv_controls_OpeningFcn, ...
-                   'gui_OutputFcn',  @hv_controls_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
+    gui_Singleton = 1;
+    gui_State = struct('gui_Name',       mfilename, ...
+                       'gui_Singleton',  gui_Singleton, ...
+                       'gui_OpeningFcn', @hv_controls_OpeningFcn, ...
+                       'gui_OutputFcn',  @hv_controls_OutputFcn, ...
+                       'gui_LayoutFcn',  [] , ...
+                       'gui_Callback',   []);
+    if nargin && ischar(varargin{1})
+        gui_State.gui_Callback = str2func(varargin{1});
+    end
 
-if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
-else
-    gui_mainfcn(gui_State, varargin{:});
+    if nargout
+        [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+    else
+        gui_mainfcn(gui_State, varargin{:});
+    end
+    % End initialization code - DO NOT EDIT
 end
-% End initialization code - DO NOT EDIT
-end
+    
 
 % --- Executes just before hv_controls is made visible.
 function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -59,7 +59,19 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.points = zeros(41198,1);   % store handles to plotted points
     handles.pointsPlotted = zeros(41198,1); %because matlab doesn't like combining
                                             %a bool tracker with handles..
+                                            
+    handles.hurStepHandles = zeros(200,1);
+    handles.hurStepHIndex = 1;
+    handles.eddysPlottedHandles = zeros(200,1);
+    handles.eddysPlottedHIndex = 1;
+    handles.linesPlottedHandles = zeros(200,1);
+    handles.linesPlottedHIndex = 1;
 
+
+    s = load('EBTracks_Atlantic1992-2010v2.mat', 'ebtrkatlc1992_2010');
+    handles.ebtrack = s.ebtrkatlc1992_2010;
+
+    % Experimental handles for clearing old plotted points..
 
     % Create a 1442x3 matrix containing the indeces of a specific hurricane
     % in the hurDat matrix -> HurricaneIndex(somehurricane#) =
@@ -74,31 +86,32 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
         end
     end
     handles.HurricaneIndex(1442,2) = 41198;
-
+            
     % Maintain a history of which hurricanes have been plotted so we can
     % easily clear the most recent
     handles.HurIndexHist = 0;
 
     % Handle for keeping track of plotting hurricanes stepwise
     handles.stepPlace = 0;
-    
+    handles.OldStepPlace = 0;
+
     % Attempting to step repeatedly on the last hurricane
     % coordinate doesn't overwrite the cooresponding original handle
     handles.plotStop = 0;
-    
-    
+
+
     % Counter used so that every step does not need the eddy bodies to be 
     % redrawn (a serious slowdown issue).
     handles.nextEddyDraw = 0;
-    
+
     % used to handle drawing eddy bodies only around the hurricane path
     % Rows: Latitute Longitude
     % Columns: Min Max
     handles.coordLimits = zeros(2);
-    
+
     % Current hurricane #
     handles.choice = 0;
-    
+
     % Establish colorScale for hurricane intensity
     handles.colorScale = jet(181); %for min/max of 10/160 kt
 
@@ -109,20 +122,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     plotm(lat,long)
     whitebg('k')
     handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
-    
+
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
-    
-    % Displays the current X,Y coordinates of the mouse cursor when active
-    % not currently working
-    %set(gcf, 'WindowButtonMotionFcn', @mouseMove);
-    
-    %Display lat,lon coordinates on mouse click, needs an on/off toggle
-    %set(gcf, 'WindowButtonDownFcn', @mouseCoords);
 
     % Update handles structure
     guidata(hObject, handles);
@@ -236,8 +242,8 @@ function drawBodies_Callback(hObject, eventdata, handles)
 
     % some business to create the proper name string for loading eddy
     % bodies    
-    [anticycFile cyclonicFile] = findEddies(num2str(handles.eddyYear),...
-        num2str(handles.eddyMonth), num2str(handles.eddyDay));
+    [anticycFile cyclonicFile] = findEddies(num2str(handles.Year),...
+        num2str(handles.Month), num2str(handles.Day));
     
 
     handles.canvas = zeros(721, 1440, 'uint8');
@@ -380,7 +386,6 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
     
     function drawEddies()
 
-        
         disp('Drawing eddy bodies. This will take a few seconds')
         % some business to create the proper name string for loading eddy
         % bodies
@@ -402,9 +407,9 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         for i = 1:length(handles.eddy1.eddies)
             handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
         end
-         for i = 1:length(handles.eddy2.eddies)
-             handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
-         end
+        for i = 1:length(handles.eddy2.eddies)
+            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
+        end
 
 
         % Function to return min/max value of lat/long, corresponding to current
@@ -459,7 +464,7 @@ end
 
 function edit16_Callback(hObject, eventdata, handles)
 
-    dateString = sprintf('%d/%d/%d', handles.year,handles.month,handles.day);
+    dateString = sprintf('%d/%d/%d', handles.Year,handles.Month,handles.Day);
     set(handles.edit16, 'String', dateString);
     
     guidata(hObject,handles);
@@ -478,3 +483,230 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
+
+
+function edit18_Callback(hObject, eventdata, handles)
+    handles.lat = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit18_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit18 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+
+function edit19_Callback(hObject, eventdata, handles)
+    handles.lon = str2double(get(hObject,'String'));
+    guidata(hObject,handles);
+    
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit19_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit19 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+% --- Executes on button press in pushbutton20.
+function pushbutton20_Callback(hObject, eventdata, handles)
+    plotm(handles.lat, handles.lon, 'o');
+    
+    guidta(hObject, handles);
+
+end
+
+% --- Executes during object creation, after setting all properties.
+function pushbutton20_CreateFcn(hObject, eventdata, handles)
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+
+function edit20_Callback(hObject, eventdata, handles)
+% hObject    handle to edit20 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit20 as text
+%        str2double(get(hObject,'String')) returns contents of edit20 as a double
+    handles.ebtrackID = get(hObject,'String');
+    if(handles.stepPlace ~= 0)
+        handles.oldStepPlace = handles.stepPlace;
+    end
+    for i = 1 : size(handles.ebtrack,1)
+        if(strcmp(handles.ebtrackID,cellstr(handles.ebtrack(i,1))))
+            handles.stepPlace = i;
+            break
+        end
+    end
+    handles.plotStop = 0;
+    for i = i : size(handles.ebtrack,1)
+        if(~strcmp(handles.ebtrackID,cellstr(handles.ebtrack(i,1))))
+            handles.lastIndex = i - 1;
+            break
+        end
+    end
+    
+    guidata(hObject, handles);
+
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function edit20_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit20 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+
+% --- Executes on button press in pushbutton21.
+function pushbutton21_Callback(hObject, eventdata, handles)
+    
+    if(handles.plotStop == 1)
+        errordlg('Current hurricane has been fully plotted');
+        return
+    end
+
+    handles.Year = double(handles.ebtrack(handles.stepPlace,3));
+    handles.Month = double(handles.ebtrack(handles.stepPlace,4));
+    handles.Day = double(handles.ebtrack(handles.stepPlace,5));   
+
+
+    offset = 0;
+
+
+    % Determine the day of the week
+    step = handles.stepPlace;
+    year = num2str(handles.Year);
+    month = num2str(handles.Month);
+    day = num2str(handles.Day);
+    offset = double(handles.ebtrack(step,6))/6 + ((weekday(strcat(year,...
+        '-', month, '-', day)) - 1) * 4);
+    handles.nextEddyDraw = 28;
+
+    % Display eddies
+    drawBodies_Callback(hObject,eventdata,handles);
+    
+    % Keep track of when next to draw eddy bodies
+    if(handles.nextEddyDraw == 0)
+        handles.nextEddyDraw = 28; % Four time steps per day
+     else
+         handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
+    end
+    
+    % delete old hurricane time steps
+    if(handles.hurStepHIndex > 1)
+        i = handles.hurStepHIndex - 1;
+        while(i > 0)
+            delete(handles.hurStepHandles(i));
+            i = i - 1;
+        end
+        handles.hurStepHIndex = 1;
+    end
+    
+    % delete old plotted eddies
+    if(handles.eddysPlottedHIndex > 1)
+        i = handles.eddysPlottedHIndex - 1;
+        while(i > 0)
+            delete(handles.eddysPlottedHandles(i));
+            i = i - 1;
+        end
+        handles.eddysPlottedHIndex = 1;
+    end
+    
+    % delete old lines between hurricane steps and eddies
+    if(handles.linesPlottedHIndex > 1)
+        i = handles.linesPlottedHIndex - 1;
+        while(i > 0)
+            delete(handles.linesPlottedHandles(i));
+            i = i - 1;
+        end
+        handles.linesPlottedHIndex = 1;
+    end
+    
+    for i=handles.nextEddyDraw:-1:0
+        disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        if(handles.plotStop == 0)
+            hurLat = double(handles.ebtrack(handles.stepPlace,7));
+            hurLon = double(handles.ebtrack(handles.stepPlace,8));
+            eddyLat = double(handles.ebtrack(handles.stepPlace,19));
+            eddyLon = double(handles.ebtrack(handles.stepPlace,20));
+            if(double(handles.ebtrack(handles.stepPlace,18)) == 1) %associated with anticyclonic eddy
+                handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
+                    hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    [1 0 0], 'MarkerFaceColor',[1 0 0]);
+                handles.eddysPlottedHandles(handles.eddysPlottedHIndex) = ...
+                    plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    [1 0 0]);
+                handles.linesPlottedHandles(handles.linesPlottedHIndex) = ...
+                    linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
+                handles.hurStepHIndex = handles.hurStepHIndex + 1;
+                handles.eddysPlottedHIndex = handles.eddysPlottedHIndex + 1;
+                handles.linesPlottedHIndex = handles.linesPlottedHIndex + 1;
+            elseif(double(handles.ebtrack(handles.stepPlace,18)) == -1) %associated with cyclonic eddy
+                handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
+                    hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
+                handles.eddysPlottedHandles(handles.eddysPlottedHIndex) = ...
+                    plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    [.25 .75 .25]);
+                handles.linesPlottedHandles(handles.linesPlottedHIndex) = ...
+                    linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',[.25 .75 .25]);
+                handles.hurStepHIndex = handles.hurStepHIndex + 1;
+                handles.eddysPlottedHIndex = handles.eddysPlottedHIndex + 1;
+                handles.linesPlottedHIndex = handles.linesPlottedHIndex + 1;
+            else
+                handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
+                    hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    [0 0 0], 'MarkerFaceColor',[0 0 0]);
+                handles.hurStepHIndex = handles.hurStepHIndex + 1;
+            end
+            %handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+        end
+        if(handles.stepPlace < handles.lastIndex)
+            handles.stepPlace = handles.stepPlace + 1;
+        else
+            disp('Current Hurricane is fully plotted.')
+            handles.plotStop = 1; %Step will not plot the last coordinate again
+                                  %in order to not lose the handle
+        end
+    end
+    
+    
+    
+    edit16_Callback(hObject, eventdata, handles);
+    guidata(hObject, handles);
+end
+    

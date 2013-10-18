@@ -1,8 +1,8 @@
 
 
-function lat_lon_of_pixels = pid2latlon(pixelIdxList)
+function lat_lon_of_pixels = pid2latlon(pixelIdxList, latLonMap)
 
-    load('/project/expeditions/eddies_project_data/ssh_data/data/pixels_2_lat_lon_map.mat')
+%     load('/project/expeditions/eddies_project_data/ssh_data/data/pixels_2_lat_lon_map.mat')
     
     
     
