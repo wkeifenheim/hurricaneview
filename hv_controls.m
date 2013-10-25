@@ -54,7 +54,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % varargin   command line arguments to hv_controls (see VARARGIN)
 
 
-    s = load('HurDat_1851_2010.mat');
+    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/HurDat_1851_2010.mat');
     handles.hurDat = s.hurDat;
     handles.points = zeros(41198,1);   % store handles to plotted points
     handles.pointsPlotted = zeros(41198,1); %because matlab doesn't like combining
@@ -68,12 +68,13 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.linesPlottedHIndex = 1;
 
 
-    s = load('EBTracks_Atlantic1992-2010v2.mat', 'ebtrkatlc1992_2010');
+    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/EBTracks_Atlantic1992-2010v3.mat',...
+        'ebtrkatlc1992_2010');
     handles.ebtrack = s.ebtrkatlc1992_2010;
 
     % Experimental handles for clearing old plotted points..
 
-    % Create a 1442x3 matrix containing the indeces of a specific hurricane
+    % Create a 1442x3 matrix containing the indexes of a specific hurricane
     % in the hurDat matrix -> HurricaneIndex(somehurricane#) =
     % [startindex,endindex,plotted]
     handles.HurricaneIndex = zeros([1442,3]);
@@ -306,11 +307,28 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-% FUNCTION MAY BE VESTIGIAL
+% Identical to edit20_Callback(....)
 function getHurNum_Callback(hObject, eventdata, handles)
 
-    handles.choice = str2double(get(hObject,'String'));
-    guidata(hObject,handles);
+    handles.ebtrackID = get(hObject,'String');
+    if(handles.stepPlace ~= 0)
+        handles.oldStepPlace = handles.stepPlace;
+    end
+    for i = 1 : size(handles.ebtrack,1)
+        if(strcmp(handles.ebtrackID,cellstr(handles.ebtrack(i,1))))
+            handles.stepPlace = i;
+            break
+        end
+    end
+    handles.plotStop = 0;
+    for i = i : size(handles.ebtrack,1)
+        if(~strcmp(handles.ebtrackID,cellstr(handles.ebtrack(i,1))))
+            handles.lastIndex = i - 1;
+            break
+        end
+    end
+    
+    guidata(hObject, handles);
     
 end
 
@@ -336,117 +354,57 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         return
     end
 
+    handles.Year = double(handles.ebtrack(handles.stepPlace,3));
+    handles.Month = double(handles.ebtrack(handles.stepPlace,4));
+    handles.Day = double(handles.ebtrack(handles.stepPlace,5));   
+
+
     offset = 0;
-    
-    
-    % If this is the first call to this method..
-    if (handles.stepPlace == 0)
 
-        % Get beginning index and retrieve date
-        tempIndex = handles.HurricaneIndex(handles.choice,1);
-        handles.year = handles.hurDat(tempIndex,2);
-        handles.month = handles.hurDat(tempIndex,3);
-        handles.day = handles.hurDat(tempIndex,4);
-        handles.stepPlace = tempIndex;
-        
-        % If first instance of plotting a
-        % hurricane, assign; otherwise append
-        if(handles.HurIndexHist == 0) %initial case
-            handles.HurIndexHist = handles.choice;
-        else
-            handles.HurIndexHist = [handles.HurIndexHist,handles.choice];
-        end
 
-        % Determine the day of the week
-         step = handles.stepPlace;
-         year = num2str(handles.hurDat(step,2));
-         month = num2str(handles.hurDat(step,3));
-         day = num2str(handles.hurDat(step,4));
-         offset = handles.hurDat(tempIndex,5)/6 + ((weekday(strcat(year,...
-             '-', month, '-', day)) - 1) * 4);
-        handles.nextEddyDraw = 28;
-        
-        % Find the lat/lon bounds of the selected hurricane
-        currentHurricane = handles.hurDat(handles.stepPlace,1);
-        hurricaneIndeces = handles.HurricaneIndex(currentHurricane,:);
-        handles.coordLimits = getHurricaneBounds(hurricaneIndeces, handles.hurDat);
-        
-        % Display eddies
-        drawEddies()
-        
-    end
+    % Determine the day of the week
+    step = handles.stepPlace;
+    year = num2str(handles.Year);
+    month = num2str(handles.Month);
+    day = num2str(handles.Day);
+    offset = double(handles.ebtrack(step,6))/6 + ((weekday(strcat(year,...
+        '-', month, '-', day)) - 1) * 4);
+    handles.nextEddyDraw = 28;
+
+    % Display eddies
+    drawBodies_Callback(hObject,eventdata,handles);
     
     % Keep track of when next to draw eddy bodies
     if(handles.nextEddyDraw == 0)
-        drawEddies()
         handles.nextEddyDraw = 28; % Four time steps per day
      else
          handles.nextEddyDraw = handles.nextEddyDraw - 1 - offset;
     end
     
-    function drawEddies()
-
-        disp('Drawing eddy bodies. This will take a few seconds')
-        % some business to create the proper name string for loading eddy
-        % bodies
-        step = handles.stepPlace;
-        year = num2str(handles.hurDat(step,2));
-        month = num2str(handles.hurDat(step,3));
-        day = num2str(handles.hurDat(step,4));
-        
-        disp('Drawing eddies cooresponding to the week of [year,month,day]')
-        fprintf('[%s,%s,%s]\n',year,month,day);
-
-        [anticycFile, cyclonicFile] = findEddies(year, month, day);
-
-        handles.canvas = zeros(721, 1440, 'uint8');
-
-        handles.eddy2 = load(anticycFile);
-        handles.eddy1 = load(cyclonicFile);
-
-        for i = 1:length(handles.eddy1.eddies)
-            handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
-        end
-        for i = 1:length(handles.eddy2.eddies)
-            handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 2;  %anticyclonic
-        end
-
-
-        % Function to return min/max value of lat/long, corresponding to current
-        % hurricane being plotted, to restrict display of eddy bodies
-        [latIndexStart latIndexEnd lonIndexStart lonIndexEnd  ] = findEddyDisplayBoundary(...
-        handles.coordLimits, handles.ssh);
-
-%         tempCanvas = zeros(721,1440, 'uint8');
-% 
-%         tempCanvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd) = ...
-%             handles.canvas(latIndexStart:latIndexEnd, lonIndexStart:lonIndexEnd);
-
-        handles.surface = pcolorm(handles.ssh.lat, handles.ssh.lon, handles.canvas);
-        %geoshow(gca, handles.land, 'FaceColor', [1 1 1]);
-    end
-
-    if(handles.pointsPlotted(handles.stepPlace-1) == 1)
-        i = handles.stepPlace-1;
-        while(handles.pointsPlotted(i) == 1)
-            delete(handles.points(i));
-            handles.pointPlotted(i) = 0;
+    % delete old hurricane time steps
+    if(handles.hurStepHIndex > 1)
+        i = handles.hurStepHIndex - 1;
+        while(i > 0)
+            delete(handles.hurStepHandles(i));
             i = i - 1;
         end
+        handles.hurStepHIndex = 1;
     end
-
+    
     for i=handles.nextEddyDraw:-1:0
-        %Determine appropriate hurricane category color and plot it
-        %color = chooseRGB(handles.hurDat(handles.stepPlace,12));
-        color = handles.colorScale((handles.hurDat(handles.stepPlace,10) - 9), :);
         disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
         if(handles.plotStop == 0)
-            handles.points(handles.stepPlace) = plotm(handles.hurDat(handles.stepPlace,6),...
-                handles.hurDat(handles.stepPlace,7),'o','MarkerSize',10,'MarkerEdgeColor',...
+            hurLat = double(handles.ebtrack(handles.stepPlace,7));
+            hurLon = double(handles.ebtrack(handles.stepPlace,8));
+            color = handles.colorScale((handles.ebtrack(handles.stepPlace,9) - 9), :);
+            handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
+                hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                 color, 'MarkerFaceColor',color);
-            handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
-        end
-        if(handles.stepPlace < handles.HurricaneIndex(handles.choice,2))
+            handles.hurStepHIndex = handles.hurStepHIndex + 1;
+            
+            end
+            %handles.pointsPlotted(handles.stepPlace) = 1; %mark as plotted
+        if(handles.stepPlace < handles.lastIndex)
             handles.stepPlace = handles.stepPlace + 1;
         else
             disp('Current Hurricane is fully plotted.')
@@ -455,11 +413,12 @@ function stepFromHurNum_Callback(hObject, eventdata, handles)
         end
     end
     
-    handles.nextEddyDraw = 0;
+    
     
     edit16_Callback(hObject, eventdata, handles);
-
+    
     guidata(hObject,handles);
+    
 end
 
 function edit16_Callback(hObject, eventdata, handles)
