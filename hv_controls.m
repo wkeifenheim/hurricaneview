@@ -68,9 +68,20 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.linesPlottedHIndex = 1;
 
 
-    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/EBTracks_Atlantic1992-2010v3.mat',...
+    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/EBTracks_Atlantic1992-2010v5.mat',...
         'ebtrkatlc1992_2010');
     handles.ebtrack = s.ebtrkatlc1992_2010;
+    
+    s = load(strcat('/project/expeditions/eddies_project_data/results/',...
+        'tracks_new_landmask_10_30_2013/lnn/td_anticyc_new_landmask.mat'));
+    handles.td_anti_tracks = s.td_anticyc_tracks;
+    s = load(strcat('/project/expeditions/eddies_project_data/results/',...
+        'tracks_new_landmask_10_30_2013/lnn/td_cyclonic_new_landmask.mat'));
+    handles.td_cyc_tracks = s.td_cyclonic_tracks;
+    
+    handles.tracksPlottedHandles = zeros(200,1);
+    handles.tracksPlottedHIndex = 1;
+    
 
     % Experimental handles for clearing old plotted points..
 
@@ -560,7 +571,7 @@ function pushbutton21_Callback(hObject, eventdata, handles)
 
     handles.Year = double(handles.ebtrack(handles.stepPlace,3));
     handles.Month = double(handles.ebtrack(handles.stepPlace,4));
-    handles.Day = double(handles.ebtrack(handles.stepPlace,5));   
+    handles.Day = double(handles.ebtrack(handles.stepPlace,5));
 
 
     offset = 0;
@@ -574,6 +585,17 @@ function pushbutton21_Callback(hObject, eventdata, handles)
     offset = double(handles.ebtrack(step,6))/6 + ((weekday(strcat(year,...
         '-', month, '-', day)) - 1) * 4);
     handles.nextEddyDraw = 28;
+    
+    %Concatenate date fields for track index..
+    if(handles.Month < 10)
+        month = strcat('0','month');
+    end
+    if(handles.Day < 10)
+        day = strcat('0','day');
+    end
+    handles.YYYYMMDD = num2str(strcat(year,month,day));
+    
+    
 
     % Display eddies
     drawBodies_Callback(hObject,eventdata,handles);
@@ -613,6 +635,16 @@ function pushbutton21_Callback(hObject, eventdata, handles)
             i = i - 1;
         end
         handles.linesPlottedHIndex = 1;
+    end
+    
+    %delte old eddy tracks
+    if(handles.tracksPlottedHIndex > 1)
+        i = handles.tracksPlottedHIndex - 1;
+        while(i > 0)
+            delete(handles.tracksPlottedHandles(i));
+            i = i - 1;
+        end
+        handles.tracksPlottedHIndex = 1;
     end
     
     for i=handles.nextEddyDraw:-1:0
