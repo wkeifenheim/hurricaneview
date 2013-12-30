@@ -374,7 +374,7 @@ end
 end
 
 
-% --- Executes on button press in pushbutton21.
+% --- Method for drawing weekly hurricane track segment with eddies
 function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     
     tic
@@ -384,6 +384,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
         return
     end
     
+    %extract date information
     isovec = datevec(handles.ibtracs.ISO_time(handles.stepPlace));
     handles.Year = isovec(1);
     handles.Month = isovec(2);
@@ -412,12 +413,13 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     handles.track_time_slice = findTimeSlice(num2str(handles.Year),...
         num2str(handles.Month), num2str(handles.Day));
     
+    % Display eddies
     disp('about to draw eddies..')
     toc
-    % Display eddies
     drawBodies_Callback(hObject,eventdata,handles);
-    disp('done drawing eddies..')
+    disp('done drawing eddies..') %currently takes about 6 seconds to complete
     toc
+    
     % Keep track of when next to draw eddy bodies
     if(handles.nextEddyDraw == 0)
         handles.nextEddyDraw = 28; % Four time steps per day
@@ -483,7 +485,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     %toggle to mark first instance of a weeks track...
     first_plot_hurr = 1;
 
-
+    %Plot hurricane time-steps and eddy interactions..
     for i=handles.nextEddyDraw:-1:0
         
         disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
@@ -621,7 +623,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
             
             disp('Current Hurricane is fully plotted.')
             handles.plotStop = 1; %Step will not plot the last coordinate again
-                                  %in order to not lose the handle
+                                  %in order to not lose any handles
         end
         
         %waitbar(plot_complete/handles.nextEddyDraw)
@@ -631,6 +633,6 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     toc
     
     
-    edit16_Callback(hObject, eventdata, handles);
+    edit16_Callback(hObject, eventdata, handles); %updates date display..
     guidata(hObject, handles);
 end
