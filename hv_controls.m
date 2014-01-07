@@ -117,11 +117,14 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     load coast
     plotm(lat,long)
     whitebg('k')
-    handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
+%     handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
 
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
+    
+    %lets try storing a handle for the surface object created by pcolorm..
+    handles.pcolor_h = NaN;
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
@@ -148,6 +151,16 @@ end
 % --- Executes on button press in drawBodies.
 function drawBodies_Callback(hObject, eventdata, handles)
 
+    %Experiment to delete old eddy bodies..
+%     if(~isnan(handles.pcolor_h))
+%         delete(gca)
+%         axesm('pcarre')
+%         load coast
+%         plotm(lat,long)
+%         whitebg('k')
+%         handles.pcolor_h = NaN;
+%     end
+    
     % some business to create the proper name string for loading eddy
     % bodies    
     anticycFile = strcat('/project/expeditions/eddies_project_data/results/new_bottom_up_w_land_mask_09_16_2013/',...
@@ -215,7 +228,8 @@ function drawBodies_Callback(hObject, eventdata, handles)
     d = find(handles.ssh.lon == handles.coordlimits(2,2));
     
     pcolorm(handles.ssh.lat(a:b), handles.ssh.lon(c:d),...
-        handles.canvas(a:b,c:d))
+        handles.canvas(a:b,c:d));
+    handles.pcolor_h = 1;
 %       pcolorm(handles.ssh.lat, handles.ssh.lon,...
 %           handles.canvas)
     
@@ -416,53 +430,60 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     handles.Year = isovec(1);
     handles.Month = isovec(2);
     handles.Day = isovec(3);
+    
+    %Clear the map
+    cla
+    handles.figure = axesm('pcarre');%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
+    load coast
+    plotm(lat,long)
+    whitebg('k')
    
-    % Display eddies
+%     % Display eddies
     disp('about to draw eddies..')
     toc
     drawBodies_Callback(hObject,eventdata,handles);
     disp('done drawing eddies..') %currently takes about 6 seconds to complete
     toc
-    
-    % delete old hurricane time steps
-    if(handles.hurStepHIndex > 1)
-        i = handles.hurStepHIndex - 1;
-        while(i > 0)
-            delete(handles.hurStepHandles(i));
-            i = i - 1;
-        end
-        handles.hurStepHIndex = 1;
-    end
-    
-    % delete old plotted eddies
-    if(handles.eddysPlottedHIndex > 1)
-        i = handles.eddysPlottedHIndex - 1;
-        while(i > 0)
-            delete(handles.eddysPlottedHandles(i));
-            i = i - 1;
-        end
-        handles.eddysPlottedHIndex = 1;
-    end
-    
-    % delete old lines between hurricane steps and eddies
-    if(handles.linesPlottedHIndex > 1)
-        i = handles.linesPlottedHIndex - 1;
-        while(i > 0)
-            delete(handles.linesPlottedHandles(i));
-            i = i - 1;
-        end
-        handles.linesPlottedHIndex = 1;
-    end
-    
-    %delete old eddy tracks
-    if(handles.tracksPlottedHIndex > 1)
-        i = handles.tracksPlottedHIndex - 1;
-        while(i > 0)
-            delete(handles.tracksPlottedHandles(i));
-            i = i - 1;
-        end
-        handles.tracksPlottedHIndex = 1;
-    end
+%     
+%     % delete old hurricane time steps
+%     if(handles.hurStepHIndex > 1)
+%         i = handles.hurStepHIndex - 1;
+%         while(i > 0)
+%             delete(handles.hurStepHandles(i));
+%             i = i - 1;
+%         end
+%         handles.hurStepHIndex = 1;
+%     end
+%     
+%     % delete old plotted eddies
+%     if(handles.eddysPlottedHIndex > 1)
+%         i = handles.eddysPlottedHIndex - 1;
+%         while(i > 0)
+%             delete(handles.eddysPlottedHandles(i));
+%             i = i - 1;
+%         end
+%         handles.eddysPlottedHIndex = 1;
+%     end
+%     
+%     % delete old lines between hurricane steps and eddies
+%     if(handles.linesPlottedHIndex > 1)
+%         i = handles.linesPlottedHIndex - 1;
+%         while(i > 0)
+%             delete(handles.linesPlottedHandles(i));
+%             i = i - 1;
+%         end
+%         handles.linesPlottedHIndex = 1;
+%     end
+%     
+%     %delete old eddy tracks
+%     if(handles.tracksPlottedHIndex > 1)
+%         i = handles.tracksPlottedHIndex - 1;
+%         while(i > 0)
+%             delete(handles.tracksPlottedHandles(i));
+%             i = i - 1;
+%         end
+%         handles.tracksPlottedHIndex = 1;
+%     end
     
     
     %Draw hurricane time-steps and any associated eddy
@@ -577,7 +598,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
                    
                     k = handles.ibtracs.TrackIdx(e_index);
-                    if(k ~= 0)
+                    if(~isnan(k))
                         track = cell2mat(handles.bu_cyc_tracks(k));
                         disp('displaying cyclonic track..')
                         handles.tracksPlottedHandles(handles.tracksPlottedHIndex)...
@@ -621,6 +642,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
             disp('Current Hurricane is fully plotted.')
             handles.plotStop = 1; %Step will not plot the last coordinate again
                                   %in order to not lose any handles
+            break
         end
         
         %waitbar(plot_complete/handles.nextEddyDraw)
