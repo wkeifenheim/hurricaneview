@@ -58,17 +58,6 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     
     s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/IBTrACS_indices_v1.mat');
     handles.ibtracs_idx = s.IBTrACS_indices;
-    
-    %Used for tracking and deleting plotted stuff
-    handles.hurStepHandles = zeros(200,1);
-    handles.hurStepHIndex = 1;
-    handles.eddysPlottedHandles = zeros(200,1);
-    handles.eddysPlottedHIndex = 1;
-    handles.linesPlottedHandles = zeros(200,1);
-    handles.linesPlottedHIndex = 1;
-    handles.tracksPlottedHandles = zeros(2000,1);
-    handles.tracksPlottedHIndex = 1;
-    %-----------------------------------------------
 
     please_wait = msgbox('Loading eddy track files, this will take up to 30 seconds..');
     s = load(strcat('/project/expeditions/eddies_project_data/results/',...
@@ -78,7 +67,6 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
         'tracks_new_landmask_10_30_2013/lnn/bu_cyclonic_new_landmask.mat'));
     handles.bu_cyc_tracks = s.bu_cyclonic_tracks;
     delete(please_wait)
-    
 
     s = load(strcat('/panfs/roc/groups/6/kumarv/keifenhe/Documents/',...
             'Datasets/eddy_track_date_indices.mat'));
@@ -89,42 +77,30 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     handles.HurIndexHist = 0;
 
     % Handle for keeping track of plotting hurricanes stepwise
-    handles.stepPlace = 0;
-    handles.OldStepPlace = 0;
+     handles.stepPlace = 0;
+%     handles.OldStepPlace = 0;
 
     % Attempting to step repeatedly on the last hurricane
     % coordinate doesn't overwrite the cooresponding original handle
     handles.plotStop = 0;
-
-    % Counter used so that every step does not need the eddy bodies to be 
-    % redrawn (a serious slowdown issue).
-    %handles.nextEddyDraw = 0;
 
     % used to handle drawing eddy bodies only around the hurricane path
     % Rows: Latitute Longitude
     % Columns: Min Max
     handles.coordLimits = zeros(2,2);
 
-    % Current hurricane #
-    handles.choice = 0;
-
     % Establish colorScale for hurricane intensity
     handles.colorScale = jet(181); %for min/max of 10/160 kt
 
     % Load up the map
-    %worldmap([0 70],[-120 0])
     handles.figure = axesm('pcarre');%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
-%     handles.land = shaperead('landareas', 'UseGeoCoords', true); %landmask
 
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
-    
-    %lets try storing a handle for the surface object created by pcolorm..
-    handles.pcolor_h = NaN;
 
     % Choose default command line output for hv_controls
     handles.output = hObject;
@@ -178,9 +154,9 @@ function drawBodies_Callback(hObject, eventdata, handles)
     
     % 0.1 seconds
     subset = handles.ibtracs(handles.stepPlace:handles.lastIndex,:);
-    subset = subset(double(subset(:,23)) ~= 0,:);
-    cyclonic_eddies = subset(double(subset(:,17)) == -1,:); %cyclonic
-    anticyc_eddies = subset(double(subset(:,17)) == 1,:); %anticyclonic
+    subset = subset(subset.TrackLength(:) == 1,:);
+    cyclonic_eddies = subset(subset.EddyClass(:) == -1,:); %cyclonic
+    anticyc_eddies = subset(subset.EddyClass(:) == 1,:); %anticyclonic
     %--------------------------------------------------%
     
     % 1 seconds
@@ -195,7 +171,7 @@ function drawBodies_Callback(hObject, eventdata, handles)
             % The following if statement colors an eddy a different shade if it
             % does not have a lifetime longer than one week, but interacts with
             % a hurricane
-            if sum(double(cyclonic_eddies(:,22)) == i)
+            if sum(cyclonic_eddies.EddyIdx(:) == i)
                 handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 1; %cyclonic
             else
                 handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 2; %cyclonic
@@ -210,7 +186,7 @@ function drawBodies_Callback(hObject, eventdata, handles)
                 handles.eddy2.eddies(i).Lon >= handles.coordlimits(2,1) &&...
                 handles.eddy2.eddies(i).Lon <= handles.coordlimits(2,2))
         
-            if sum(double(anticyc_eddies(:,22)) == i)
+            if sum(anticyc_eddies.EddyIdx(:) == i)
                 handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 3;  %anticyclonic
             else
                 handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 4;
@@ -227,6 +203,8 @@ function drawBodies_Callback(hObject, eventdata, handles)
     c = find(handles.ssh.lon == handles.coordlimits(1,2));
     d = find(handles.ssh.lon == handles.coordlimits(2,2));
     
+    %requires branching statements to accomodate tracks that cross 0 or 180
+    %degrees Longitude
     pcolorm(handles.ssh.lat(a:b), handles.ssh.lon(c:d),...
         handles.canvas(a:b,c:d));
     handles.pcolor_h = 1;
@@ -444,47 +422,6 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     drawBodies_Callback(hObject,eventdata,handles);
     disp('done drawing eddies..') %currently takes about 6 seconds to complete
     toc
-%     
-%     % delete old hurricane time steps
-%     if(handles.hurStepHIndex > 1)
-%         i = handles.hurStepHIndex - 1;
-%         while(i > 0)
-%             delete(handles.hurStepHandles(i));
-%             i = i - 1;
-%         end
-%         handles.hurStepHIndex = 1;
-%     end
-%     
-%     % delete old plotted eddies
-%     if(handles.eddysPlottedHIndex > 1)
-%         i = handles.eddysPlottedHIndex - 1;
-%         while(i > 0)
-%             delete(handles.eddysPlottedHandles(i));
-%             i = i - 1;
-%         end
-%         handles.eddysPlottedHIndex = 1;
-%     end
-%     
-%     % delete old lines between hurricane steps and eddies
-%     if(handles.linesPlottedHIndex > 1)
-%         i = handles.linesPlottedHIndex - 1;
-%         while(i > 0)
-%             delete(handles.linesPlottedHandles(i));
-%             i = i - 1;
-%         end
-%         handles.linesPlottedHIndex = 1;
-%     end
-%     
-%     %delete old eddy tracks
-%     if(handles.tracksPlottedHIndex > 1)
-%         i = handles.tracksPlottedHIndex - 1;
-%         while(i > 0)
-%             delete(handles.tracksPlottedHandles(i));
-%             i = i - 1;
-%         end
-%         handles.tracksPlottedHIndex = 1;
-%     end
-    
     
     %Draw hurricane time-steps and any associated eddy
     %Also draw the track for each eddy that is associated with a hurricane
@@ -496,9 +433,6 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     
     disp('beginning to plot hurricane..')
     toc
-    
-%     plot_wait = waitbar(0,'plotting hurricane time-steps..');
-%     plot_complete = 0;
 
     %toggle to mark first instance of a weeks track...
     first_plot_hurr = 1;
@@ -519,26 +453,17 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
             if(handles.ibtracs.EddyClass(handles.stepPlace) == 1) %associated with anticyclonic eddy
                 
                 if(first_plot_hurr)
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
                         [1 0 0], 'MarkerFaceColor',[1 0 0]);
                     first_plot_hurr = 0;
                 else
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                         [1 0 0], 'MarkerFaceColor',[1 0 0]);
                 end
-                
-                handles.eddysPlottedHandles(handles.eddysPlottedHIndex) = ...
-                    plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+
+                plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                     [1 0 0]);
-                
-                handles.linesPlottedHandles(handles.linesPlottedHIndex) = ...
-                    linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
-                
-                handles.hurStepHIndex = handles.hurStepHIndex + 1;
-                handles.eddysPlottedHIndex = handles.eddysPlottedHIndex + 1;
-                handles.linesPlottedHIndex = handles.linesPlottedHIndex + 1;
+                linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
                 
                 %plot eddy track, if not already plotted..
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
@@ -552,15 +477,9 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
                     if(~isnan(k))
                         track = cell2mat(handles.bu_anti_tracks(k));
                         disp('displaying anti-cyclonic track..')
-                        handles.tracksPlottedHandles(handles.tracksPlottedHIndex)...
-                            = linem(track(:,1), track(:,2), 'ro-', 'LineWidth',...
+                        linem(track(:,1), track(:,2), 'ro-', 'LineWidth',...
                             1.5);
-                        handles.tracksPlottedHIndex = handles.tracksPlottedHIndex...
-                            + 1;
-                        handles.tracksPlottedHandles(handles.tracksPlottedHIndex)...
-                            = plotm(track(1,1), track(1,2), 'rd-');
-                        handles.tracksPlottedHIndex = handles.tracksPlottedHIndex...
-                            + 1;
+                        plotm(track(1,1), track(1,2), 'rd-');
                     end
                     
                 end
@@ -568,26 +487,17 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
             elseif(handles.ibtracs.EddyClass(handles.stepPlace) == -1) %associated with cyclonic eddy
                 
                 if(first_plot_hurr)
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
                         [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
                     first_plot_hurr = 0;
                 else
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                         [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
                 end
                 
-                handles.eddysPlottedHandles(handles.eddysPlottedHIndex) = ...
-                    plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                     [.25 .75 .25]);
-                
-                handles.linesPlottedHandles(handles.linesPlottedHIndex) = ...
-                    linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',[.25 .75 .25]);
-                
-                handles.hurStepHIndex = handles.hurStepHIndex + 1;
-                handles.eddysPlottedHIndex = handles.eddysPlottedHIndex + 1;
-                handles.linesPlottedHIndex = handles.linesPlottedHIndex + 1;
+                linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',[.25 .75 .25]);
                 
                 %plot eddy track, if not already plotted..
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
@@ -601,36 +511,24 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
                     if(~isnan(k))
                         track = cell2mat(handles.bu_cyc_tracks(k));
                         disp('displaying cyclonic track..')
-                        handles.tracksPlottedHandles(handles.tracksPlottedHIndex)...
-                            = linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
+                        linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
                             1.5, 'Color', [0.25 .75 0.25]);
-                        handles.tracksPlottedHIndex = handles.tracksPlottedHIndex...
-                            + 1;
-                        handles.tracksPlottedHandles(handles.tracksPlottedHIndex)...
-                            = plotm(track(1,1), track(1,2), 'd',...
+                        plotm(track(1,1), track(1,2), 'd',...
                             'Color', [0.25 .75 0.25]);
-                        handles.tracksPlottedHIndex = handles.tracksPlottedHIndex...
-                            + 1;
                     end
                     
                 end
                 
             else
                 if(first_plot_hurr)
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
                         [0 0 0], 'MarkerFaceColor',[0 0 0]);
                     first_plot_hurr = 0;
                 else
-                    handles.hurStepHandles(handles.hurStepHIndex) = plotm(hurLat,...
-                        hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
                         [0 0 0], 'MarkerFaceColor',[0 0 0]);
                 end
-                
-                handles.hurStepHIndex = handles.hurStepHIndex + 1;
-                
-            end
-            
+            end 
         end
         
         if(handles.stepPlace < handles.lastIndex)
