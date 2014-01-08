@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 07-Jan-2014 13:14:43
+% Last Modified by GUIDE v2.5 07-Jan-2014 16:24:25
 
 % Begin initialization code - DO NOT EDIT
     gui_Singleton = 1;
@@ -44,7 +44,6 @@ function varargout = hv_controls(varargin)
     % End initialization code - DO NOT EDIT
 end
     
-
 % --- Executes just before hv_controls is made visible.
 function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % This function has no output args, see OutputFcn.
@@ -78,7 +77,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
 
     % Handle for keeping track of plotting hurricanes stepwise
      handles.stepPlace = 0;
-%     handles.OldStepPlace = 0;
+     handles.plotStack = [];
 
     % Attempting to step repeatedly on the last hurricane
     % coordinate doesn't overwrite the cooresponding original handle
@@ -87,7 +86,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % used to handle drawing eddy bodies only around the hurricane path
     % Rows: Latitute Longitude
     % Columns: Min Max
-    handles.coordLimits = zeros(2,2);
+    handles.coordLimits = cell(1,2);
 
     % Establish colorScale for hurricane intensity
     handles.colorScale = jet(181); %for min/max of 10/160 kt
@@ -158,15 +157,26 @@ function drawBodies_Callback(hObject, eventdata, handles)
     cyclonic_eddies = subset(subset.EddyClass(:) == -1,:); %cyclonic
     anticyc_eddies = subset(subset.EddyClass(:) == 1,:); %anticyclonic
     %--------------------------------------------------%
+    a = handles.coordLimits{1,1};
+    b = handles.coordLimits{1,2};
+    lats = handles.ssh.lat(a);
+    lons = handles.ssh.lon(b);
+    
+    %I hate that I have to do this....
+    pos_lons = lons(lons >= 0);
+    neg_lons = lons(lons < 0);
+    
     
     % 1 seconds
     for i = 1:length(handles.eddy1.eddies)
         
-        if((handles.eddy1.eddies(i).Lat >= handles.coordlimits(1,1) &&...
-                handles.eddy1.eddies(i).Lat <= handles.coordlimits(1,2))...
+        if((handles.eddy1.eddies(i).Lat >= min(lats) &&...
+                handles.eddy1.eddies(i).Lat <= max(lats))...
                 &&...
-                handles.eddy1.eddies(i).Lon >= handles.coordlimits(2,1) &&...
-                handles.eddy1.eddies(i).Lon <= handles.coordlimits(2,2))
+                (((handles.eddy1.eddies(i).Lon >= pos_lons(1)) &&...
+                (handles.eddy1.eddies(i).Lon <= pos_lons(end))) ||...
+                ((handles.eddy1.eddies(i).Lon <= neg_lons(end)) &&...
+                (handles.eddy1.eddies(i).Lon >= neg_lons(1)))))
             
             % The following if statement colors an eddy a different shade if it
             % does not have a lifetime longer than one week, but interacts with
@@ -177,14 +187,17 @@ function drawBodies_Callback(hObject, eventdata, handles)
                 handles.canvas(handles.eddy1.eddies(i).Stats.PixelIdxList) = 2; %cyclonic
             end
         end
+       
     end
     for i = 1:length(handles.eddy2.eddies)
         
-        if((handles.eddy2.eddies(i).Lat >= handles.coordlimits(1,1) &&...
-                handles.eddy2.eddies(i).Lat <= handles.coordlimits(1,2))...
+        if((handles.eddy2.eddies(i).Lat >= min(lats) &&...
+                handles.eddy2.eddies(i).Lat <= max(lats))...
                 &&...
-                handles.eddy2.eddies(i).Lon >= handles.coordlimits(2,1) &&...
-                handles.eddy2.eddies(i).Lon <= handles.coordlimits(2,2))
+                (((handles.eddy2.eddies(i).Lon >= pos_lons(1)) &&...
+                (handles.eddy2.eddies(i).Lon <= pos_lons(end))) ||...
+                ((handles.eddy2.eddies(i).Lon <= neg_lons(end)) &&...
+                (handles.eddy2.eddies(i).Lon >= neg_lons(1)))))
         
             if sum(anticyc_eddies.EddyIdx(:) == i)
                 handles.canvas(handles.eddy2.eddies(i).Stats.PixelIdxList) = 3;  %anticyclonic
@@ -198,58 +211,28 @@ function drawBodies_Callback(hObject, eventdata, handles)
 
     %find indices cooresponding to coordlimits..
     
-    a = find(handles.ssh.lat == handles.coordlimits(1,1));
-    b = find(handles.ssh.lat == handles.coordlimits(2,1));
-    c = find(handles.ssh.lon == handles.coordlimits(1,2));
-    d = find(handles.ssh.lon == handles.coordlimits(2,2));
-    
-    %requires branching statements to accomodate tracks that cross 0 or 180
-    %degrees Longitude
-    pcolorm(handles.ssh.lat(a:b), handles.ssh.lon(c:d),...
-        handles.canvas(a:b,c:d));
-    handles.pcolor_h = 1;
+%     a = find(handles.ssh.lat == handles.coordlimits(1,1));
+%     b = find(handles.ssh.lat == handles.coordlimits(2,1));
+%     c = find(handles.ssh.lon == handles.coordlimits(1,2));
+%     d = find(handles.ssh.lon == handles.coordlimits(2,2));
+
+   
+    pcolorm(handles.ssh.lat(a), handles.ssh.lon(b), handles.canvas(a,b));
+%     handles.pcolor_h = 1;
 %       pcolorm(handles.ssh.lat, handles.ssh.lon,...
 %           handles.canvas)
     
     guidata(hObject,handles);
 end
 
-function eddyYear_Callback(hObject, eventdata, handles)
+function eddyTimeSlice_Callback(hObject, eventdata, handles)
 
-    handles.eddyYear = get(hObject,'String');
+    handles.eddyTimeSlice = get(hObject,'String');
     guidata(hObject,handles);
 end
 
 % --- Executes during object creation, after setting all properties.
-function eddyYear_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-end
-
-function eddyMonth_Callback(hObject, eventdata, handles)
-
-    handles.eddyMonth = get(hObject,'String');
-    guidata(hObject,handles);
-end
-
-% --- Executes during object creation, after setting all properties.
-function eddyMonth_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-end
-
-function eddyDay_Callback(hObject, eventdata, handles)
-
-
-    handles.eddyDay = get(hObject,'String');
-    guidata(hObject,handles);
-end
-
-function eddyDay_CreateFcn(hObject, eventdata, handles)
+function eddyTimeSlice_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -279,16 +262,15 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-
-function edit18_Callback(hObject, eventdata, handles)
+function lat_Callback(hObject, eventdata, handles)
     handles.lat = str2double(get(hObject,'String'));
     guidata(hObject,handles);
 
 end
 
 % --- Executes during object creation, after setting all properties.
-function edit18_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit18 (see GCBO)
+function lat_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lat (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -299,17 +281,15 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 end
 
-
-
-function edit19_Callback(hObject, eventdata, handles)
+function lon_Callback(hObject, eventdata, handles)
     handles.lon = str2double(get(hObject,'String'));
     guidata(hObject,handles);
     
 end
 
 % --- Executes during object creation, after setting all properties.
-function edit19_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit19 (see GCBO)
+function lon_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lon (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -319,7 +299,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
-
 
 % --- Executes on button press in pushbutton20.
 function pushbutton20_Callback(hObject, eventdata, handles)
@@ -338,8 +317,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
-
-
 
 function hurID_Callback(hObject, eventdata, handles) %#ok<*INUSL>
 % hObject    handle to hurID (see GCBO)
@@ -363,20 +340,50 @@ function hurID_Callback(hObject, eventdata, handles) %#ok<*INUSL>
     handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
 
     %find bounds for which to color map with eddy bodies..
-    lats = handles.ibtracs.EddyLat(handles.stepPlace:handles.lastIndex);
-    lons = handles.ibtracs.EddyLon(handles.stepPlace:handles.lastIndex);
+    lats = handles.ibtracs.Latitude_for_mapping(handles.stepPlace:handles.lastIndex);
+    lons = handles.ibtracs.Longitude_for_mapping(handles.stepPlace:handles.lastIndex);
     
-    % Rows: Latitute Longitude
-    % Columns: Min Max
-    handles.coordlimits(1,1) = floor(min(lats)/0.25)*0.25 - 5;
-    handles.coordlimits(2,1) = floor(max(lats)/0.25)*0.25 + 5;
-    handles.coordlimits(1,2) = floor(min(lons)/0.25)*0.25 - 5;
-    handles.coordlimits(2,2) = floor(max(lons)/0.25)*0.25 + 5;
+    % Columns: Latitute Longitude
+    % Rows: Min Max
+    min_lat = floor(min(lats)/0.25)*0.25 - 5;
+    max_lat = floor(max(lats)/0.25)*0.25 + 5;
+    min_lon = floor(min(lons)/0.25)*0.25;
+    max_lon = floor(max(lons)/0.25)*0.25;
+    
+    a = find(handles.ssh.lat == min_lat);
+    b = find(handles.ssh.lat == max_lat);
+    c = find(handles.ssh.lon == min_lon);
+    d = find(handles.ssh.lon == max_lon);
+    
+    %Repair the coordinate limits if 0 or 180 degrees latitude is crossed
+    if((min_lon < 0 && max_lon > 0))
+       
+        pos_lons = lons(lons(:) >= 0);
+        neg_lons = lons(lons(:) < 0);
+        min_pos = floor(min(pos_lons)/0.25)*0.25 - 5;
+        min_pos = find(handles.ssh.lon == min_pos);
+        max_neg = floor(max(neg_lons)/0.25)*0.25 + 5;
+        max_neg = find(handles.ssh.lon == max_neg);
+       
+        %track cross 180 degrees longitude
+        if((max_lon-180) <= 2)
+            handles.coordLimits{1,2} = (min_pos:max_neg);
+        else %Crosses 0 degress longitude
+            handles.coordLimits{1,2} = [0:d, c:1440];
+        end
+        handles.coordLimits{1,1} = (a:b);
+    else
+        handles.coordLimits{1,1} = (a:b);
+        min_lon = min_lon - 5;
+        max_lon = max_lon + 5;
+        c = find(handles.ssh.lon == min_lon);
+        d = find(handles.ssh.lon == max_lon);
+        handles.coordLimits{1,2} = (c:d);
+    end
     
     guidata(hObject, handles);
 
 end
-
 
 % --- Executes during object creation, after setting all properties.
 function hurID_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU,*INUSD>
@@ -392,9 +399,8 @@ end
 
 end
 
-
 % --- Method for drawing weekly hurricane track segment with eddies
-function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
+function step_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     
     tic
     
@@ -402,6 +408,9 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
         errordlg('Current hurricane has been fully plotted');
         return
     end
+    
+    %push the first index of the current timeslice being plotted..
+    handles.plotStack(length(handles.plotStack) + 1) = handles.stepPlace;
     
     %extract date information
     isovec = datevec(handles.ibtracs.ISO_time(handles.stepPlace));
@@ -417,11 +426,11 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     whitebg('k')
    
 %     % Display eddies
-    disp('about to draw eddies..')
-    toc
+    %disp('about to draw eddies..')
+    %toc
     drawBodies_Callback(hObject,eventdata,handles);
-    disp('done drawing eddies..') %currently takes about 6 seconds to complete
-    toc
+    %disp('done drawing eddies..') %currently takes about 6 seconds to complete
+    %toc
     
     %Draw hurricane time-steps and any associated eddy
     %Also draw the track for each eddy that is associated with a hurricane
@@ -431,8 +440,8 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     type_toggle = NaN;
     idx_toggle = NaN;
     
-    disp('beginning to plot hurricane..')
-    toc
+    %disp('beginning to plot hurricane..')
+    %toc
 
     %toggle to mark first instance of a weeks track...
     first_plot_hurr = 1;
@@ -440,7 +449,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
     %Plot hurricane time-steps and eddy interactions..
     while(handles.TimeSlice == handles.ibtracs.TimeSlice(handles.stepPlace))
         
-        disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        %disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
         
         if(handles.plotStop == 0)
             e_index = handles.stepPlace;
@@ -469,14 +478,14 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
                         handles.ibtracs.TrackIdx(e_index) ~= idx_toggle)
                     
-                    disp('attempting to find and plot a track..')
+                    %disp('attempting to find and plot a track..')
                     type_toggle = handles.ibtracs.EddyClass(e_index);
                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
                     
                     k = handles.ibtracs.TrackIdx(e_index);
                     if(~isnan(k))
                         track = cell2mat(handles.bu_anti_tracks(k));
-                        disp('displaying anti-cyclonic track..')
+                        %disp('displaying anti-cyclonic track..')
                         linem(track(:,1), track(:,2), 'ro-', 'LineWidth',...
                             1.5);
                         plotm(track(1,1), track(1,2), 'rd-');
@@ -503,14 +512,14 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
                         handles.ibtracs.EddyIdx(e_index) ~= idx_toggle)
                     
-                    disp('attempting to find and plot a track..')
+                    %disp('attempting to find and plot a track..')
                     type_toggle = handles.ibtracs.EddyClass(e_index);
                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
                    
                     k = handles.ibtracs.TrackIdx(e_index);
                     if(~isnan(k))
                         track = cell2mat(handles.bu_cyc_tracks(k));
-                        disp('displaying cyclonic track..')
+                        %disp('displaying cyclonic track..')
                         linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
                             1.5, 'Color', [0.25 .75 0.25]);
                         plotm(track(1,1), track(1,2), 'd',...
@@ -537,7 +546,7 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
         
         else
             
-            disp('Current Hurricane is fully plotted.')
+            %disp('Current Hurricane is fully plotted.')
             handles.plotStop = 1; %Step will not plot the last coordinate again
                                   %in order to not lose any handles
             break
@@ -546,11 +555,27 @@ function pushbutton21_Callback(hObject, eventdata, handles) %#ok<DEFNU>
         %waitbar(plot_complete/handles.nextEddyDraw)
         
     end
-    disp('done plotting hurricane and eddy tracks..')
+    %disp('done plotting hurricane and eddy tracks..')
     handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
     toc
     
     
     edit16_Callback(hObject, eventdata, handles); %updates date display..
     guidata(hObject, handles);
+end
+
+% --- Executes on button press in previous_plot.
+function previous_plot_Callback(hObject, eventdata, handles)
+% hObject    handle to previous_plot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+    i = length(handles.plotStack);
+    handles.stepPlace = handles.plotStack(i-1);
+    handles.plotStack = handles.plotStack(1:(i-2));
+    handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
+    handles.plotStop = 0;
+    guidata(hObject,handles);
+    step_Callback(hObject, eventdata, handles);
+
 end
