@@ -22,7 +22,7 @@ function varargout = hv_controls(varargin)
 
 % Edit the above text to modify the response to help hv_controls
 
-% Last Modified by GUIDE v2.5 07-Jan-2014 16:24:25
+% Last Modified by GUIDE v2.5 08-Jan-2014 15:34:44
 
 % Begin initialization code - DO NOT EDIT
     gui_Singleton = 1;
@@ -52,6 +52,7 @@ function hv_controls_OpeningFcn(hObject, eventdata, handles, varargin)
     % handles    structure with handles and user data (see GUIDATA)
     % varargin   command line arguments to hv_controls (see VARARGIN)
 
+    handles.output = hObject;
     s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/IBTrACS_20140106.mat');
     handles.ibtracs = s.IBTrACS_1992_2010;
     
@@ -366,10 +367,10 @@ function hurID_Callback(hObject, eventdata, handles) %#ok<*INUSL>
         max_neg = find(handles.ssh.lon == max_neg);
        
         %track cross 180 degrees longitude
-        if((max_lon-180) <= 2)
+        if((max_lon-180) <= 2 && (max_lon-180) >= 0)
             handles.coordLimits{1,2} = (min_pos:max_neg);
         else %Crosses 0 degress longitude
-            handles.coordLimits{1,2} = [0:d, c:1440];
+            handles.coordLimits{1,2} = [1:(d+20), c:1440];
         end
         handles.coordLimits{1,1} = (a:b);
     else
