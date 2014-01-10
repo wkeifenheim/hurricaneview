@@ -389,6 +389,14 @@ function plotEddies_Callback(hObject, eventdata, handles)
     
     % 0.1 seconds
     subset = handles.ibtracs(handles.stepPlace:handles.lastIndex,:);
+%     last_idx = NaN;
+%     for i = handles.stepPlace : handles.lastIndex
+%         if(handles.ibtracs.TimeSlice(i) ~= handles.TimeSlice)
+%             last_idx = i-1;
+%             break
+%         end
+%     end
+    %subset = handles.ibtracs(handles.stepPlace:last_idx,:);
     subset = subset(subset.TrackLength(:) == 1,:);
     cyclonic_eddies = subset(subset.EddyClass(:) == -1,:); %cyclonic
     anticyc_eddies = subset(subset.EddyClass(:) == 1,:); %anticyclonic
@@ -579,19 +587,4 @@ function getEddyTimeslice_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-end
-
-% --- Executes on button press in previousEddies.
-function previousEddies_Callback(hObject, eventdata, handles)
-    %Find the currrent timeslice in the list
-    for i = 1 : size(handles.track_index,1)
-        if(handles.timeSlice == handles.track_index.Date(i))
-            break
-        end
-    end
-    
-    handles.timeSlice = handles.track_index.Date(i-1);
-    guidata(hObject,handles);
-    plotEddies_Callback(hObject,eventdata,handles);
-    
 end

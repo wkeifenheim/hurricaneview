@@ -2,7 +2,7 @@ Selection of longer tracks (# of wrong-associations):
 1997013S08101 (14)
 1998002S14151 (5)
 1994222N11267 (10) - crosses 180 degrees longitude
-1993360S04171 - missing timesteps
+1993360S04171 - missing timesteps?
 2000032S11115 (1)
 2008033S11083 (1) - fun one, gives weight to needing timestep connectives
 1993221N12216 - "Keoni" August 1993, odd path..
@@ -20,19 +20,9 @@ South Atlantic Hurricanes:
 2004086S29318 - "unnamed" March 2004
 
 Hurricanes with eddies that have 1-week lifetimes (total 878):
-1992286N12115
-1992288N10089
-1992289N08135
-1992289N09171
-
-1993069S08164
-1993083S12181
-
-2000060S12086
-
-2002008N07141
-
-2005063S11140
+1992289N08135 - missing windspeeds.. questionable
+1997062S16158 *also listed as one of the longer tracks, one week eddy (should?) have track
+2009346S07086 - somehow doesn't trigger the end of hurricane track warning..
 
 
 Hurricanes with non-6 hour time stamps:
