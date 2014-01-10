@@ -22,7 +22,7 @@ function varargout = he_viewer(varargin)
 
 % Edit the above text to modify the response to help he_viewer
 
-% Last Modified by GUIDE v2.5 08-Jan-2014 18:30:51
+% Last Modified by GUIDE v2.5 09-Jan-2014 17:37:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -217,6 +217,9 @@ function plotAll_Callback(hObject, eventdata, handles)
         return
     end
     tic
+    displayTimeSlice_Callback(hObject, eventdata, handles);
+    displayIndex_Callback(hObject, eventdata, handles);
+    displayBasin_Callback(hObject, eventdata, handles);
     
     %push the first index of the current timeslice being plotted..
     handles.plotStack(length(handles.plotStack) + 1) = handles.stepPlace;
@@ -351,8 +354,6 @@ function plotAll_Callback(hObject, eventdata, handles)
     handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
     toc
     
-    
-    displayTimeSlice_Callback(hObject, eventdata, handles);
     guidata(hObject, handles);
 end
 
@@ -505,6 +506,51 @@ end
 % --- Executes during object creation, after setting all properties.
 function displayTimeSlice_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to displayTimeSlice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+
+function displayBasin_Callback(hObject, eventdata, handles)
+    
+    basinString = handles.ibtracs.Basin(handles.stepPlace);
+    set(handles.displayBasin, 'String', basinString);
+    
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function displayBasin_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to displayBasin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function displayIndex_Callback(hObject, eventdata, handles)
+    
+    indexString = num2str(handles.stepPlace);
+    set(handles.displayIndex, 'String', indexString);
+    
+    guidata(hObject, handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function displayIndex_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to displayIndex (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
