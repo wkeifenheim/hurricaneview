@@ -22,7 +22,7 @@ function varargout = he_viewer(varargin)
 
 % Edit the above text to modify the response to help he_viewer
 
-% Last Modified by GUIDE v2.5 09-Jan-2014 17:37:01
+% Last Modified by GUIDE v2.5 09-Jan-2014 18:16:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -358,7 +358,7 @@ function plotAll_Callback(hObject, eventdata, handles)
 end
 
 
-% --- Executes on button press in previous.
+% Plot the previous timeslice of the hurricane track
 function previous_Callback(hObject, eventdata, handles)
     i = length(handles.plotStack);
     handles.stepPlace = handles.plotStack(i-1);
@@ -559,4 +559,39 @@ function displayIndex_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
+
+
+
+function getEddyTimeslice_Callback(hObject, eventdata, handles)
+    handles.timeSlice = num2str(get(hObject,'String'));
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function getEddyTimeslice_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to getEddyTimeslice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+% --- Executes on button press in previousEddies.
+function previousEddies_Callback(hObject, eventdata, handles)
+    %Find the currrent timeslice in the list
+    for i = 1 : size(handles.track_index,1)
+        if(handles.timeSlice == handles.track_index.Date(i))
+            break
+        end
+    end
+    
+    handles.timeSlice = handles.track_index.Date(i-1);
+    guidata(hObject,handles);
+    plotEddies_Callback(hObject,eventdata,handles);
+    
 end

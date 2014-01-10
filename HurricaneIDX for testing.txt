@@ -1,0 +1,48 @@
+Selection of longer tracks (# of wrong-associations):
+1997013S08101 (14)
+1998002S14151 (5)
+1994222N11267 (10) - crosses 180 degrees longitude
+1993360S04171 - missing timesteps
+2000032S11115 (1)
+2008033S11083 (1) - fun one, gives weight to needing timestep connectives
+1993221N12216 - "Keoni" August 1993, odd path..
+1997062S16158 - **2nd timeslice: significant time over one-week cyc-eddy (problem)
+1996357S10136 (0)
+1997212N11265 
+1997333N06194
+1996289N13280 - crosses 0 degrees longitude
+
+Notables:
+2005236N23285 - "Katrina" (THE katrina, 3 total) August 2005
+
+South Atlantic Hurricanes:
+2010067S25317 - "Invest" March 2010
+2004086S29318 - "unnamed" March 2004
+
+Hurricanes with eddies that have 1-week lifetimes (total 878):
+1992286N12115
+1992288N10089
+1992289N08135
+1992289N09171
+
+1993069S08164
+1993083S12181
+
+2000060S12086
+
+2002008N07141
+
+2005063S11140
+
+
+Hurricanes with non-6 hour time stamps:
+2011009S15113
+2010302S08098
+2006200N32287
+2005192N11318
+2005186N12299
+2004247N10332
+2002245N29281
+1998259N10335
+1996237N14339
+1995212N22287
