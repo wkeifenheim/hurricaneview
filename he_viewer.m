@@ -256,6 +256,24 @@ function plotAll_Callback(hObject, eventdata, handles)
     while(handles.TimeSlice == handles.ibtracs.TimeSlice(handles.stepPlace))
         
         %disp(strcat('plotting point cooresponding to stepPlace:',num2str(handles.stepPlace)))
+        %Determine the category of the hurricane, represented by markersize
+        %when plotting..
+        windspeed = handles.ibtracs.WindWMO(handles.stepPlace);
+        if(isnan(windspeed))
+            m_size = 8;
+        elseif(windspeed >= 64 && windspeed <= 82)
+            m_size = 10;
+        elseif(windspeed >= 83 && windspeed <= 95)
+            m_size = 12;
+        elseif(windspeed >= 96 && windspeed <= 112)
+            m_size = 14;
+        elseif(windspeed >= 113 && windspeed <= 136)
+            m_size = 16;
+        elseif(windspeed >= 137)
+            m_size = 18;
+        else
+            m_size = 8;
+        end
         
         if(handles.plotStop == 0)
             e_index = handles.stepPlace;
@@ -268,11 +286,11 @@ function plotAll_Callback(hObject, eventdata, handles)
             if(handles.ibtracs.EddyClass(handles.stepPlace) == 1) %associated with anticyclonic eddy
                 
                 if(first_plot_hurr)
-                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
                         [1 0 0], 'MarkerFaceColor',[1 0 0]);
                     first_plot_hurr = 0;
                 else
-                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
                         [1 0 0], 'MarkerFaceColor',[1 0 0]);
                 end
 
@@ -300,11 +318,11 @@ function plotAll_Callback(hObject, eventdata, handles)
             elseif(handles.ibtracs.EddyClass(handles.stepPlace) == -1) %associated with cyclonic eddy
                 
                 if(first_plot_hurr)
-                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
                         [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
                     first_plot_hurr = 0;
                 else
-                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
                         [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
                 end
                 
@@ -332,11 +350,11 @@ function plotAll_Callback(hObject, eventdata, handles)
                 
             else
                 if(first_plot_hurr)
-                    plotm(hurLat, hurLon,'d','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
                         [0 0 0], 'MarkerFaceColor',[0 0 0]);
                     first_plot_hurr = 0;
                 else
-                    plotm(hurLat, hurLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+                    plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
                         [0 0 0], 'MarkerFaceColor',[0 0 0]);
                 end
             end 
