@@ -56,7 +56,7 @@ function he_viewer_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for he_viewer
 handles.output = hObject;
 
-    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/IBTrACS_20140106.mat');
+    s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/IBTrACS_1992_2010_bu_all.mat');
     handles.ibtracs = s.IBTrACS_1992_2010;
     
     s = load('/panfs/roc/groups/6/kumarv/keifenhe/Documents/Datasets/IBTrACS_indices_v1.mat');
@@ -102,6 +102,7 @@ handles.output = hObject;
     handles.colorScale = jet(181); %for min/max of 10/160 kt
 
     % Load up the map
+    axes(handles.axes1);
     handles.figure = axesm('pcarre');%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
@@ -300,12 +301,12 @@ function plotAll_Callback(hObject, eventdata, handles)
                 
                 %plot eddy track, if not already plotted..
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
-                        handles.ibtracs.TrackIdx(e_index) ~= idx_toggle)
+                        handles.ibtracs.EddyTrackIdx(e_index) ~= idx_toggle)
                     
                     type_toggle = handles.ibtracs.EddyClass(e_index);
                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
                     
-                    k = handles.ibtracs.TrackIdx(e_index);
+                    k = handles.ibtracs.EddyTrackIdx(e_index);
                     if(~isnan(k))
                         track = cell2mat(handles.bu_anti_tracks(k));
                         linem(track(:,1), track(:,2), 'ro-', 'LineWidth',...
@@ -337,7 +338,7 @@ function plotAll_Callback(hObject, eventdata, handles)
                     type_toggle = handles.ibtracs.EddyClass(e_index);
                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
                    
-                    k = handles.ibtracs.TrackIdx(e_index);
+                    k = handles.ibtracs.EddyTrackIdx(e_index);
                     if(~isnan(k))
                         track = cell2mat(handles.bu_cyc_tracks(k));
                         linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
@@ -415,7 +416,7 @@ function plotEddies_Callback(hObject, eventdata, handles)
 %         end
 %     end
     %subset = handles.ibtracs(handles.stepPlace:last_idx,:);
-    subset = subset(subset.TrackLength(:) == 1,:);
+    subset = subset(subset.EddyTrackLength(:) == 1,:);
     cyclonic_eddies = subset(subset.EddyClass(:) == -1,:); %cyclonic
     anticyc_eddies = subset(subset.EddyClass(:) == 1,:); %anticyclonic
     %--------------------------------------------------%
