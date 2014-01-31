@@ -22,7 +22,7 @@ function varargout = he_viewer(varargin)
 
 % Edit the above text to modify the response to help he_viewer
 
-% Last Modified by GUIDE v2.5 09-Jan-2014 18:16:49
+% Last Modified by GUIDE v2.5 31-Jan-2014 15:12:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -103,10 +103,20 @@ handles.output = hObject;
 
     % Load up the map
     axes(handles.axes1);
-    handles.figure = axesm('pcarre');%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
+    handles.figure = axesm('pcarre', 'Origin', [0 180 0]);%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
+    
+    axes(handles.axes2);
+    title('windspeed')
+    ylabel('knots')
+    axes(handles.axes5);
+    title('pressure')
+    ylabel('millibars')
+    axes(handles.axes6);
+    title('displacement')
+    ylabel('kilometers')
 
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
@@ -194,6 +204,24 @@ function hurID_Callback(hObject, eventdata, handles)
         handles.coordLimits{1,2} = (c:d);
     end
     
+    %Populate plots of hurricane characteristics
+    hur_idx = strcmp(handles.ibtracs.Serial_Num(:),handles.ibtracsID);
+    axes(handles.axes2);
+    plot(handles.ibtracs.WindWMO(hur_idx));
+    title('windspeed')
+    ylabel('knots')
+    axes(handles.axes5);
+    plot(handles.ibtracs.PresWMO(hur_idx));
+    title('pressure')
+    ylabel('millibars')
+    axes(handles.axes6);
+    plot(handles.ibtracs.Displacement_d1(hur_idx));
+    title('displacement')
+    ylabel('kilometers')
+    axes(handles.axes1);
+    
+    hurr_info1_Callback(hObject, eventdata, handles);
+    
     guidata(hObject, handles);
 end
 
@@ -218,9 +246,9 @@ function plotAll_Callback(hObject, eventdata, handles)
         return
     end
     tic
-    displayTimeSlice_Callback(hObject, eventdata, handles);
-    displayIndex_Callback(hObject, eventdata, handles);
-    displayBasin_Callback(hObject, eventdata, handles);
+%     displayTimeSlice_Callback(hObject, eventdata, handles);
+%     displayIndex_Callback(hObject, eventdata, handles);
+%     displayBasin_Callback(hObject, eventdata, handles);
     
     %push the first index of the current timeslice being plotted..
     handles.plotStack(length(handles.plotStack) + 1) = handles.stepPlace;
@@ -522,71 +550,71 @@ end
 
 
 
-function displayTimeSlice_Callback(hObject, eventdata, handles)
-    
-    dateString = num2str(handles.ibtracs.TimeSlice(handles.stepPlace));
-    set(handles.displayTimeSlice, 'String', dateString);
-    
-    guidata(hObject,handles);
-end
-
-% --- Executes during object creation, after setting all properties.
-function displayTimeSlice_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to displayTimeSlice (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-end
-
-
-
-function displayBasin_Callback(hObject, eventdata, handles)
-    
-    basinString = handles.ibtracs.Basin(handles.stepPlace);
-    set(handles.displayBasin, 'String', basinString);
-    
-    guidata(hObject,handles);
-end
-
-% --- Executes during object creation, after setting all properties.
-function displayBasin_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to displayBasin (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-end
-
-
-function displayIndex_Callback(hObject, eventdata, handles)
-    
-    indexString = num2str(handles.stepPlace);
-    set(handles.displayIndex, 'String', indexString);
-    
-    guidata(hObject, handles);
-end
-
-% --- Executes during object creation, after setting all properties.
-function displayIndex_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to displayIndex (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-end
+% function displayTimeSlice_Callback(hObject, eventdata, handles)
+%     
+%     dateString = num2str(handles.ibtracs.TimeSlice(handles.stepPlace));
+%     set(handles.displayTimeSlice, 'String', dateString);
+%     
+%     guidata(hObject,handles);
+% end
+% 
+% % --- Executes during object creation, after setting all properties.
+% function displayTimeSlice_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to displayTimeSlice (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: edit controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% end
+% 
+% 
+% 
+% function displayBasin_Callback(hObject, eventdata, handles)
+%     
+%     basinString = handles.ibtracs.Basin(handles.stepPlace);
+%     set(handles.displayBasin, 'String', basinString);
+%     
+%     guidata(hObject,handles);
+% end
+% 
+% % --- Executes during object creation, after setting all properties.
+% function displayBasin_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to displayBasin (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: edit controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% end
+% 
+% 
+% function displayIndex_Callback(hObject, eventdata, handles)
+%     
+%     indexString = num2str(handles.stepPlace);
+%     set(handles.displayIndex, 'String', indexString);
+%     
+%     guidata(hObject, handles);
+% end
+% 
+% % --- Executes during object creation, after setting all properties.
+% function displayIndex_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to displayIndex (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: edit controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% end
 
 
 
@@ -598,6 +626,63 @@ end
 % --- Executes during object creation, after setting all properties.
 function getEddyTimeslice_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to getEddyTimeslice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+
+function hurr_info1_Callback(hObject, eventdata, handles)
+% hObject    handle to hurr_info1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of hurr_info1 as text
+%        str2double(get(hObject,'String')) returns contents of hurr_info1 as a double
+%     indexString = num2str(handles.stepPlace);
+%     set(handles.displayIndex, 'String', indexString);
+    idx = handles.stepPlace;
+    info1_str = sprintf(strcat('Hurricane Name: %s \n Timeslice: %d \n',...
+        'Basin of origin: %s \n Index in dataset: %d \n'),...
+        handles.ibtracs.Name{idx}, handles.ibtracs.TimeSlice(idx),...
+        handles.ibtracs.Basin{idx}, idx);
+    set(handles.hurr_info1, 'String', info1_str);
+    
+    guidata(hObject, handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function hurr_info1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to hurr_info1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+end
+
+
+function hurr_info2_Callback(hObject, eventdata, handles)
+% hObject    handle to hurr_info2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of hurr_info2 as text
+%        str2double(get(hObject,'String')) returns contents of hurr_info2 as a double
+end
+
+% --- Executes during object creation, after setting all properties.
+function hurr_info2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to hurr_info2 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
