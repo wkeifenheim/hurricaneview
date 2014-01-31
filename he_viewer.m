@@ -206,18 +206,69 @@ function hurID_Callback(hObject, eventdata, handles)
     
     %Populate plots of hurricane characteristics
     hur_idx = strcmp(handles.ibtracs.Serial_Num(:),handles.ibtracsID);
+    temp_ibtracs = [handles.ibtracs.WindWMO(hur_idx), handles.ibtracs.PresWMO(hur_idx),...
+        handles.ibtracs.Displacement_d1(hur_idx)];
+    [toss max_wind] = max(temp_ibtracs(:,1));
+    [toss min_pres] = min(temp_ibtracs(:,2));
+    [toss max_disp] = max(temp_ibtracs(:,3));
+    hurr_eddies = handles.ibtracs.EddyClass(hur_idx);
+    colors = zeros(sum(hur_idx),3);
+    %make color scheme for scatter plot of eddies in each line
+    %plot
+    for i = 1 : size(colors,1)
+       if(isnan(hurr_eddies(i)))
+           colors(i,:) = [0 0 0];
+       elseif(hurr_eddies(i) == -1) %cyclonic
+           colors(i,:) = [0.25 0.75 0.25];
+       elseif(hurr_eddies(i) == 1) %anticyclonic
+           colors(i,:) = [1 0 0];
+       end
+    end
+    %x values for scatter...
+    xs = (1:1:sum(hur_idx))';
+    
+    %windspeed plot
     axes(handles.axes2);
+    cla
     plot(handles.ibtracs.WindWMO(hur_idx));
-    title('windspeed')
-    ylabel('knots')
+    ylims = get(handles.axes2,'YLim');
+    line([max_wind max_wind],ylims,...
+        'Color',[0.94 0.35 0]);
+    ys = ylims(2);
+    ys = ones(size(xs)) * ys;
+    hold on
+    scatter(xs, ys, 36, colors, '.');
+    title('windspeed');
+    ylabel('knots');
+    
+    %pressure plot
     axes(handles.axes5);
+    cla
     plot(handles.ibtracs.PresWMO(hur_idx));
+    ylims = get(handles.axes5,'YLim');
+    line([min_pres min_pres],ylims,...
+        'Color',[0.94 0.35 0]);
+    ys = ylims(2);
+    ys = ones(size(xs)) * ys;
+    hold on
+    scatter(xs, ys, 36, colors, '.');    
     title('pressure')
     ylabel('millibars')
+    
+    %displacement plot
     axes(handles.axes6);
+    cla
     plot(handles.ibtracs.Displacement_d1(hur_idx));
+    ylims = get(handles.axes6,'YLim');
+    line([max_disp max_disp],ylims,...
+        'Color',[0.94 0.35 0]);
+    ys = ylims(2);
+    ys = ones(size(xs)) * ys;
+    hold on
+    scatter(xs, ys, 36, colors, '.'); 
     title('displacement')
     ylabel('kilometers')
+    
     axes(handles.axes1);
     
     hurr_info1_Callback(hObject, eventdata, handles);
@@ -261,7 +312,7 @@ function plotAll_Callback(hObject, eventdata, handles)
     
     %Clear the map
     cla
-    handles.figure = axesm('pcarre');%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
+    handles.figure = axesm('pcarre', 'Origin', [0 180 0]);%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
@@ -547,75 +598,6 @@ function plotEddies_Callback(hObject, eventdata, handles)
     
     guidata(hObject,handles);
 end
-
-
-
-% function displayTimeSlice_Callback(hObject, eventdata, handles)
-%     
-%     dateString = num2str(handles.ibtracs.TimeSlice(handles.stepPlace));
-%     set(handles.displayTimeSlice, 'String', dateString);
-%     
-%     guidata(hObject,handles);
-% end
-% 
-% % --- Executes during object creation, after setting all properties.
-% function displayTimeSlice_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to displayTimeSlice (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% end
-% 
-% 
-% 
-% function displayBasin_Callback(hObject, eventdata, handles)
-%     
-%     basinString = handles.ibtracs.Basin(handles.stepPlace);
-%     set(handles.displayBasin, 'String', basinString);
-%     
-%     guidata(hObject,handles);
-% end
-% 
-% % --- Executes during object creation, after setting all properties.
-% function displayBasin_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to displayBasin (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% end
-% 
-% 
-% function displayIndex_Callback(hObject, eventdata, handles)
-%     
-%     indexString = num2str(handles.stepPlace);
-%     set(handles.displayIndex, 'String', indexString);
-%     
-%     guidata(hObject, handles);
-% end
-% 
-% % --- Executes during object creation, after setting all properties.
-% function displayIndex_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to displayIndex (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% end
-
 
 
 function getEddyTimeslice_Callback(hObject, eventdata, handles)
