@@ -122,6 +122,10 @@ handles.output = hObject;
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
     
+    %keep track of consecutive encounters with the same eddy
+    handles.curr_eddy_class = NaN;
+    handles.curr_eddy_idx = NaN;
+    
 % Update handles structure
 guidata(hObject, handles);
 
@@ -198,7 +202,9 @@ function hurID_Callback(hObject, eventdata, handles)
         handles.case = 1;
         handles.coordLimits{1,1} = (a:b);
         min_lon = min_lon - 5;
-        max_lon = max_lon + 5;
+        if(max_lon < -5)
+            max_lon = max_lon + 5;
+        end
         c = find(handles.ssh.lon == min_lon);
         d = find(handles.ssh.lon == max_lon);
         handles.coordLimits{1,2} = (c:d);
@@ -212,20 +218,20 @@ function hurID_Callback(hObject, eventdata, handles)
     [toss min_pres] = min(temp_ibtracs(:,2));
     [toss max_disp] = max(temp_ibtracs(:,3));
     hurr_eddies = handles.ibtracs.EddyClass(hur_idx);
-    colors = zeros(sum(hur_idx),3);
+    idx = ~isnan(hurr_eddies(:));
+
     %make color scheme for scatter plot of eddies in each line
     %plot
-    for i = 1 : size(colors,1)
-       if(isnan(hurr_eddies(i)))
-           colors(i,:) = [0 0 0];
-       elseif(hurr_eddies(i) == -1) %cyclonic
-           colors(i,:) = [0.25 0.75 0.25];
-       elseif(hurr_eddies(i) == 1) %anticyclonic
-           colors(i,:) = [1 0 0];
-       end
-    end
+    colors = cell2mat(handles.ibtracs.Eddy_Assoc_Color(hur_idx));
+    colors = colors(idx,:);
+   
+    
     %x values for scatter...
     xs = (1:1:sum(hur_idx))';
+    xs = xs(idx);
+    hurr_wind = temp_ibtracs(idx,1);
+    hurr_pres = temp_ibtracs(idx,2);
+    hurr_disp = temp_ibtracs(idx,3); 
     
     %windspeed plot
     axes(handles.axes2);
@@ -234,10 +240,8 @@ function hurID_Callback(hObject, eventdata, handles)
     ylims = get(handles.axes2,'YLim');
     line([max_wind max_wind],ylims,...
         'Color',[0.94 0.35 0]);
-    ys = ylims(2);
-    ys = ones(size(xs)) * ys;
     hold on
-    scatter(xs, ys, 36, colors, '.');
+    scatter(xs, hurr_wind, 36, colors, '.');
     title('windspeed');
     ylabel('knots');
     
@@ -248,10 +252,11 @@ function hurID_Callback(hObject, eventdata, handles)
     ylims = get(handles.axes5,'YLim');
     line([min_pres min_pres],ylims,...
         'Color',[0.94 0.35 0]);
-    ys = ylims(2);
-    ys = ones(size(xs)) * ys;
+%     ys = ylims(2);
+%     ys = ones(size(xs)) * (ys - 1);
     hold on
-    scatter(xs, ys, 36, colors, '.');    
+%     scatter(xs, ys, 36, colors, '.');    
+    scatter(xs, hurr_pres, 36, colors, '.');
     title('pressure')
     ylabel('millibars')
     
@@ -262,10 +267,11 @@ function hurID_Callback(hObject, eventdata, handles)
     ylims = get(handles.axes6,'YLim');
     line([max_disp max_disp],ylims,...
         'Color',[0.94 0.35 0]);
-    ys = ylims(2);
-    ys = ones(size(xs)) * ys;
+%     ys = ylims(2);
+%     ys = ones(size(xs)) * ys;
     hold on
-    scatter(xs, ys, 36, colors, '.'); 
+%     scatter(xs, ys, 36, colors, '.'); 
+    scatter(xs, hurr_disp, 36, colors, '.');
     title('displacement')
     ylabel('kilometers')
     
@@ -297,9 +303,6 @@ function plotAll_Callback(hObject, eventdata, handles)
         return
     end
     tic
-%     displayTimeSlice_Callback(hObject, eventdata, handles);
-%     displayIndex_Callback(hObject, eventdata, handles);
-%     displayBasin_Callback(hObject, eventdata, handles);
     
     %push the first index of the current timeslice being plotted..
     handles.plotStack(length(handles.plotStack) + 1) = handles.stepPlace;
@@ -357,6 +360,7 @@ function plotAll_Callback(hObject, eventdata, handles)
         
         if(handles.plotStop == 0)
             e_index = handles.stepPlace;
+            color = handles.ibtracs.Eddy_Assoc_Color{handles.stepPlace};
             
             hurLat = handles.ibtracs.Latitude_for_mapping(handles.stepPlace);
             hurLon = handles.ibtracs.Longitude_for_mapping(handles.stepPlace);
@@ -365,17 +369,19 @@ function plotAll_Callback(hObject, eventdata, handles)
             
             if(handles.ibtracs.EddyClass(handles.stepPlace) == 1) %associated with anticyclonic eddy
                 
+                
+                
                 if(first_plot_hurr)
                     plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [1 0 0], 'MarkerFaceColor',[1 0 0]);
+                        color, 'MarkerFaceColor',color);
                     first_plot_hurr = 0;
                 else
                     plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [1 0 0], 'MarkerFaceColor',[1 0 0]);
+                        color, 'MarkerFaceColor',color);
                 end
 
                 plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
-                    [1 0 0]);
+                    color);
                 linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
                 
                 %plot eddy track, if not already plotted..
@@ -388,9 +394,9 @@ function plotAll_Callback(hObject, eventdata, handles)
                     k = handles.ibtracs.EddyTrackIdx(e_index);
                     if(~isnan(k))
                         track = cell2mat(handles.bu_anti_tracks(k));
-                        linem(track(:,1), track(:,2), 'ro-', 'LineWidth',...
-                            1.5);
-                        plotm(track(1,1), track(1,2), 'rd-');
+                        linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
+                            1.5, 'Color', color);
+                        plotm(track(1,1), track(1,2), 'd-', 'Color', color);
                     end
                     
                 end
@@ -399,16 +405,16 @@ function plotAll_Callback(hObject, eventdata, handles)
                 
                 if(first_plot_hurr)
                     plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
+                        color, 'MarkerFaceColor',color);
                     first_plot_hurr = 0;
                 else
                     plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [.25 .75 .25], 'MarkerFaceColor',[.25 .75 .25]);
+                        color, 'MarkerFaceColor',color);
                 end
                 
                 plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
-                    [.25 .75 .25]);
-                linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',[.25 .75 .25]);
+                    color);
+                linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',color);
                 
                 %plot eddy track, if not already plotted..
                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
@@ -421,9 +427,9 @@ function plotAll_Callback(hObject, eventdata, handles)
                     if(~isnan(k))
                         track = cell2mat(handles.bu_cyc_tracks(k));
                         linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
-                            1.5, 'Color', [0.25 .75 0.25]);
+                            1.5, 'Color', color);
                         plotm(track(1,1), track(1,2), 'd',...
-                            'Color', [0.25 .75 0.25]);
+                            'Color', color);
                     end
                     
                 end
