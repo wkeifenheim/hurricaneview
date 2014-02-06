@@ -22,7 +22,7 @@ function varargout = he_viewer(varargin)
 
 % Edit the above text to modify the response to help he_viewer
 
-% Last Modified by GUIDE v2.5 31-Jan-2014 15:12:04
+% Last Modified by GUIDE v2.5 04-Feb-2014 12:46:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -103,10 +103,27 @@ handles.output = hObject;
 
     % Load up the map
     axes(handles.axes1);
+    plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [1 0 0], 'MarkerFaceColor',[1 0 0]);
+    hold on;
+    plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [1 .45 0], 'MarkerFaceColor',[1 .45 0]);
+    plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [0 1 .3], 'MarkerFaceColor',[0 1 .3]);
+    plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [0.08 .5 .87], 'MarkerFaceColor',[0.08 .5 .87]);
+    hleg = legend('Anticyclonic','Anticyclonic 1-week','Cyclonic','Cyclonic 1-week',...
+        'Location','Southeast');
+    htitle = get(hleg,'Title');
+    set(htitle,'String','Eddy Legend');
+    cla
     handles.figure = axesm('pcarre', 'Origin', [0 180 0]);%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
+%     grid_h = gridm('on');
+%     set(grid_h, 'Clipping','on');
+%     set(handles.axes1,'Clipping','on');
     
     axes(handles.axes2);
     title('windspeed')
@@ -117,14 +134,56 @@ handles.output = hObject;
     axes(handles.axes6);
     title('displacement')
     ylabel('kilometers')
+    xlabel('time-steps (6-hour)')
 
     % Load ssh lat/lon data
     handles.ssh = load('/project/expeditions/eddies_project_data/ssh_data/data/global_ssh_1992_2011_with_new_landmask.mat',...
         'lat','lon');
     
+    %keep track of the hurricane age (time-steps)
+    handles.hurr_age = 1;
+    
+   %handles for current time-step of hurricane on plots
+   handles.wind_current = 1;
+   handles.pres_current = 1;
+   handles.disp_current = 1;
+    
     %keep track of consecutive encounters with the same eddy
     handles.curr_eddy_class = NaN;
     handles.curr_eddy_idx = NaN;
+    
+    %load legend into axes8
+    axes(handles.axes8);
+    %light green
+    p1 = plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [.25 .85 .5], 'MarkerFaceColor',[.25 .85 .5]);
+    hold on
+    %dark green
+    p2 = plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [.2 .5 .2], 'MarkerFaceColor',[.2 .5 .2]);
+    %light red
+    p3 = plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [1 .1 .1], 'MarkerFaceColor',[1 .1 .1]);
+    %dark red
+    p4 = plot(1,1, 'o','MarkerSize',10,'MarkerEdgeColor',...
+        [.6 .1 .1], 'MarkerFaceColor',[.7 .1 .1]);
+    
+    ylims = get(handles.axes8,'YLim');
+    p5 = line([1 1],ylims,'Color',[0.94 0.35 0]);
+    p6 = line([1 1],ylims,'Color',[0.94 0.35 .5]);
+    
+    hleg = legend('unique cyclonic','non-unique cyclonic',...
+        'unique anticyclonic','non-unique anticyc', 'Location',...
+        'South', 'Max(Min) of figure', 'map->plot indicator');
+    htitle = get(hleg,'Title');
+    set(htitle,'String','Plots Legend');
+    
+ 
+    cla
+    axis off;
+    
+    
+    axes(handles.axes1);
     
 % Update handles structure
 guidata(hObject, handles);
@@ -161,6 +220,9 @@ function hurID_Callback(hObject, eventdata, handles)
     end
     handles.plotStop = 0;
     handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
+    
+    %reset hurricane age
+    handles.hurr_age = 1;
 
     %find bounds for which to color map with eddy bodies..
     lats = handles.ibtracs.Latitude_for_mapping(handles.stepPlace:handles.lastIndex);
@@ -274,6 +336,7 @@ function hurID_Callback(hObject, eventdata, handles)
     scatter(xs, hurr_disp, 36, colors, '.');
     title('displacement')
     ylabel('kilometers')
+    xlabel('time-steps (6-hour)')
     
     axes(handles.axes1);
     
@@ -315,7 +378,7 @@ function plotAll_Callback(hObject, eventdata, handles)
     
     %Clear the map
     cla
-    handles.figure = axesm('pcarre', 'Origin', [0 180 0]);%, 'MapLatLimit', [0 70], 'MapLonLimit', [-120 0]);
+    handles.figure = axesm('pcarre', 'Origin', [0 180 0]);
     load coast
     plotm(lat,long)
     whitebg('k')
@@ -373,75 +436,83 @@ function plotAll_Callback(hObject, eventdata, handles)
                 
                 if(first_plot_hurr)
                     plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
-                        color, 'MarkerFaceColor',color);
+                        color, 'MarkerFaceColor',color, 'ButtonDownFcn',...
+                        {@clickMap_Callback,handles});
                     first_plot_hurr = 0;
                 else
                     plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
-                        color, 'MarkerFaceColor',color);
+                        color, 'MarkerFaceColor',color, 'ButtonDownFcn',...
+                        {@clickMap_Callback,handles});
                 end
 
-                plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
-                    color);
-                linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
+%                 plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+%                     color, 'ButtonDownFcn',...
+%                         {@clickMap_Callback,handles});
+%                 linem([hurLat;eddyLat],[hurLon;eddyLon],'r');
                 
                 %plot eddy track, if not already plotted..
-                if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
-                        handles.ibtracs.EddyTrackIdx(e_index) ~= idx_toggle)
-                    
-                    type_toggle = handles.ibtracs.EddyClass(e_index);
-                    idx_toggle = handles.ibtracs.EddyIdx(e_index);
-                    
-                    k = handles.ibtracs.EddyTrackIdx(e_index);
-                    if(~isnan(k))
-                        track = cell2mat(handles.bu_anti_tracks(k));
-                        linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
-                            1.5, 'Color', color);
-                        plotm(track(1,1), track(1,2), 'd-', 'Color', color);
-                    end
-                    
-                end
+%                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
+%                         handles.ibtracs.EddyTrackIdx(e_index) ~= idx_toggle)
+%                     
+%                     type_toggle = handles.ibtracs.EddyClass(e_index);
+%                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
+%                     
+%                     k = handles.ibtracs.EddyTrackIdx(e_index);
+%                     if(~isnan(k))
+%                         track = cell2mat(handles.bu_anti_tracks(k));
+%                         linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
+%                             1.5, 'Color', color);
+%                         plotm(track(1,1), track(1,2), 'd-', 'Color', color);
+%                     end
+%                     
+%                 end
                 
             elseif(handles.ibtracs.EddyClass(handles.stepPlace) == -1) %associated with cyclonic eddy
                 
                 if(first_plot_hurr)
                     plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
-                        color, 'MarkerFaceColor',color);
+                        color, 'MarkerFaceColor',color, 'ButtonDownFcn',...
+                        {@clickMap_Callback, handles});
                     first_plot_hurr = 0;
                 else
                     plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
-                        color, 'MarkerFaceColor',color);
+                        color, 'MarkerFaceColor',color, 'ButtonDownFcn',...
+                        {@clickMap_Callback, handles});
                 end
                 
-                plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
-                    color);
-                linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',color);
-                
+%                 plotm(eddyLat,eddyLon,'o','MarkerSize',10,'MarkerEdgeColor',...
+%                     color, 'ButtonDownFcn',...
+%                         {@clickMap_Callback, handles});
+%                 linem([hurLat;eddyLat],[hurLon;eddyLon],'Color',color);
+%                 
                 %plot eddy track, if not already plotted..
-                if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
-                        handles.ibtracs.EddyIdx(e_index) ~= idx_toggle)
-                    
-                    type_toggle = handles.ibtracs.EddyClass(e_index);
-                    idx_toggle = handles.ibtracs.EddyIdx(e_index);
-                   
-                    k = handles.ibtracs.EddyTrackIdx(e_index);
-                    if(~isnan(k))
-                        track = cell2mat(handles.bu_cyc_tracks(k));
-                        linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
-                            1.5, 'Color', color);
-                        plotm(track(1,1), track(1,2), 'd',...
-                            'Color', color);
-                    end
-                    
-                end
+%                 if(handles.ibtracs.EddyClass(e_index) ~= type_toggle || ...
+%                         handles.ibtracs.EddyIdx(e_index) ~= idx_toggle)
+%                     
+%                     type_toggle = handles.ibtracs.EddyClass(e_index);
+%                     idx_toggle = handles.ibtracs.EddyIdx(e_index);
+%                    
+%                     k = handles.ibtracs.EddyTrackIdx(e_index);
+%                     if(~isnan(k))
+%                         track = cell2mat(handles.bu_cyc_tracks(k));
+%                         linem(track(:,1), track(:,2), 'o-', 'LineWidth',...
+%                             1.5, 'Color', color);
+%                         plotm(track(1,1), track(1,2), 'd',...
+%                             'Color', color);
+%                     end
+%                     
+%                 end
                 
             else
                 if(first_plot_hurr)
                     plotm(hurLat, hurLon,'d','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [0 0 0], 'MarkerFaceColor',[0 0 0]);
+                        [0 0 0], 'MarkerFaceColor',[0 0 0], 'ButtonDownFcn',...
+                        {@clickMap_Callback,handles});
                     first_plot_hurr = 0;
                 else
                     plotm(hurLat, hurLon,'o','MarkerSize',m_size,'MarkerEdgeColor',...
-                        [0 0 0], 'MarkerFaceColor',[0 0 0]);
+                        [0 0 0], 'MarkerFaceColor',[0 0 0], 'ButtonDownFcn',...
+                        {@clickMap_Callback,handles});
                 end
             end 
         end
@@ -452,7 +523,8 @@ function plotAll_Callback(hObject, eventdata, handles)
             handles.plotStop = 1; %Step will not plot the last coordinate again
                                   %in order to not lose any handles
             break
-        end        
+        end    
+        handles.hurr_age = handles.hurr_age + 1;
     end
 
     handles.TimeSlice = handles.ibtracs.TimeSlice(handles.stepPlace);
@@ -679,4 +751,35 @@ function hurr_info2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+end
+
+function clickMap_Callback(hObject, eventdata, handles)
+    
+    age = handles.hurr_age;
+    time_str = handles.ibtracs.ISO_time{handles.stepPlace};
+    
+    axes(handles.axes2); %show current step on windspeed plot
+    ylims = get(handles.axes2,'YLim');
+    wind_current = line([age age],ylims,...
+        'Color',[0.94 0.35 .5]);
+    axes(handles.axes5); %show current step on pressure plot
+    ylims = get(handles.axes5,'YLim');
+    pres_current = line([age age],ylims,...
+        'Color',[0.94 0.35 .5]);
+    axes(handles.axes6); %show current step on d plot
+    ylims = get(handles.axes6,'YLim');
+    disp_current = line([age age],ylims,...
+        'Color',[0.94 0.35 .5]);
+    
+    to_print = sprintf('Age: %d time-steps\nISO_time: %s',age,time_str);
+    waitfor(msgbox(to_print));
+    delete(wind_current)
+    delete(pres_current)
+    delete(disp_current)
+    
+    axes(handles.axes1);
+    
+    
+    %guidata(hObject, handles);
+
 end
